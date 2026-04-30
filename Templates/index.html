@@ -6,8 +6,7 @@
     <title>Intellitraffic - Smart Traffic Monitoring</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-   <link rel="stylesheet" href="static/style.css">
-
+    <link rel="stylesheet" href="static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -30,14 +29,17 @@
         </header>
 
         <div class="dashboard-content">
-            <div class="sidebar">
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
                 <nav>
                     <ul>
-                        <li class="active"><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
-                        <li><a href="#"><i class="fas fa-map-marked-alt"></i> Traffic Map</a></li>
-                        <li><a href="#"><i class="fas fa-chart-line"></i> Analytics</a></li>
-                        <li><a href="#"><i class="fas fa-history"></i> Historical Data</a></li>
-                        <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                        <li class="active" data-target="dashboard"><a href="#"><i class="fas fa-home"></i> <span class="sidebar-text">Dashboard</span></a></li>
+                        <li data-target="traffic-map"><a href="#"><i class="fas fa-map-marked-alt"></i> <span class="sidebar-text">Traffic Map</span></a></li>
+                        <li data-target="analytics"><a href="#"><i class="fas fa-chart-line"></i> <span class="sidebar-text">Analytics</span></a></li>
+                        <li data-target="historical-data"><a href="#"><i class="fas fa-history"></i> <span class="sidebar-text">Historical Data</span></a></li>
+                        <li data-target="settings"><a href="#"><i class="fas fa-cog"></i> <span class="sidebar-text">Settings</span></a></li>
                     </ul>
                 </nav>
                 <div class="sidebar-footer">
@@ -60,146 +62,395 @@
             </div>
 
             <main class="main-content">
-                <div class="metrics-container">
-                    <div class="metric-card">
-                        <div class="metric-info">
-                            <h3>Total Vehicles</h3>
-                            <span class="metric-value" id="total-vehicles">0</span>
-                            <span class="metric-change" id="vehicle-change">+0% <i class="fas fa-arrow-up"></i></span>
+                <!-- Dashboard Section -->
+                <div class="content-section active" id="dashboard">
+                    <div class="metrics-container">
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <h3>Total Vehicles</h3>
+                                <span class="metric-value" id="total-vehicles">0</span>
+                                <span class="metric-change" id="vehicle-change">+0% <i class="fas fa-arrow-up"></i></span>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-car"></i>
+                            </div>
                         </div>
-                        <div class="metric-icon">
-                            <i class="fas fa-car"></i>
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <h3>Traffic Density</h3>
+                                <span class="metric-value" id="traffic-density">0%</span>
+                                <span class="metric-change" id="density-change">+0% <i class="fas fa-arrow-up"></i></span>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-road"></i>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <h3>Avg Speed</h3>
+                                <span class="metric-value" id="avg-speed">0 km/h</span>
+                                <span class="metric-change" id="speed-change">+0% <i class="fas fa-arrow-up"></i></span>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-tachometer-alt"></i>
+                            </div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-info">
+                                <h3>Prediction</h3>
+                                <span class="metric-value" id="prediction">Stable</span>
+                                <span class="metric-change" id="prediction-change">Next 30min</span>
+                            </div>
+                            <div class="metric-icon">
+                                <i class="fas fa-brain"></i>
+                            </div>
                         </div>
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-info">
-                            <h3>Traffic Density</h3>
-                            <span class="metric-value" id="traffic-density">0%</span>
-                            <span class="metric-change" id="density-change">+0% <i class="fas fa-arrow-up"></i></span>
+
+                    <div class="charts-container">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Vehicle Count (Last 24 Hours)</h3>
+                                <div class="chart-options">
+                                    <button class="active">24H</button>
+                                    <button>7D</button>
+                                    <button>30D</button>
+                                </div>
+                            </div>
+                            <canvas id="vehicleChart"></canvas>
                         </div>
-                        <div class="metric-icon">
-                            <i class="fas fa-road"></i>
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Traffic Density by Vehicle Type</h3>
+                                <div class="chart-options">
+                                    <button class="active">Now</button>
+                                    <button>Today</button>
+                                    <button>Week</button>
+                                </div>
+                            </div>
+                            <canvas id="densityChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Traffic Pattern Levels</h3>
+                                <div class="chart-options">
+                                    <button class="active">All</button>
+                                    <button>Today</button>
+                                    <button>Week</button>
+                                </div>
+                            </div>
+                            <canvas id="patternChart"></canvas>
                         </div>
                     </div>
-                    <div class="metric-card">
-                        <div class="metric-info">
-                            <h3>Avg Speed</h3>
-                            <span class="metric-value" id="avg-speed">0 km/h</span>
-                            <span class="metric-change" id="speed-change">+0% <i class="fas fa-arrow-up"></i></span>
+
+                    <div class="additional-info">
+                        <div class="info-card">
+                            <h3>Traffic Hotspots</h3>
+                            <div class="hotspots-list">
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span>Main Street & 5th Avenue</span>
+                                    </div>
+                                    <div class="hotspot-density high">High</div>
+                                </div>
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span>Downtown Tunnel</span>
+                                    </div>
+                                    <div class="hotspot-density medium">Medium</div>
+                                </div>
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span>River Bridge</span>
+                                    </div>
+                                    <div class="hotspot-density low">Low</div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="metric-icon">
-                            <i class="fas fa-tachometer-alt"></i>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-info">
-                            <h3>Prediction</h3>
-                            <span class="metric-value" id="prediction">Stable</span>
-                            <span class="metric-change" id="prediction-change">Next 30min</span>
-                        </div>
-                        <div class="metric-icon">
-                            <i class="fas fa-brain"></i>
+                        <div class="info-card">
+                            <h3>Traffic Predictions</h3>
+                            <div class="prediction-timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-time">Now</div>
+                                    <div class="timeline-status moderate">
+                                        <div class="status-dot"></div>
+                                        <div class="status-line"></div>
+                                    </div>
+                                    <div class="timeline-label">Moderate traffic</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">+30 min</div>
+                                    <div class="timeline-status high">
+                                        <div class="status-dot"></div>
+                                        <div class="status-line"></div>
+                                    </div>
+                                    <div class="timeline-label">Peak hour starts</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">+1 hr</div>
+                                    <div class="timeline-status severe">
+                                        <div class="status-dot"></div>
+                                        <div class="status-line"></div>
+                                    </div>
+                                    <div class="timeline-label">Severe congestion expected</div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">+2 hr</div>
+                                    <div class="timeline-status high">
+                                        <div class="status-dot"></div>
+                                        <div class="status-line"></div>
+                                    </div>
+                                    <div class="timeline-label">Traffic easing</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="charts-container">
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Vehicle Count (Last 24 Hours)</h3>
-                            <div class="chart-options">
-                                <button class="active">24H</button>
-                                <button>7D</button>
-                                <button>30D</button>
-                            </div>
-                        </div>
-                        <canvas id="vehicleChart"></canvas>
+                <!-- Traffic Map Section -->
+                <div class="content-section" id="traffic-map">
+                    <h2 style="margin-bottom: 1.5rem;">Live Traffic Map</h2>
+                    <div class="map-controls">
+                        <button><i class="fas fa-layer-group"></i> Traffic Layers</button>
+                        <button><i class="fas fa-search"></i> Search Location</button>
+                        <button><i class="fas fa-route"></i> Plan Route</button>
+                        <button><i class="fas fa-filter"></i> Filter Vehicles</button>
                     </div>
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Traffic Density by Vehicle Type</h3>
-                            <div class="chart-options">
-                                <button class="active">Now</button>
-                                <button>Today</button>
-                                <button>Week</button>
-                            </div>
+                    <div class="map-container">
+                        <div class="map-placeholder">
+                            <i class="fas fa-map-marked-alt" style="margin-right: 10px;"></i>
+                            Interactive Traffic Map
                         </div>
-                        <canvas id="densityChart"></canvas>
                     </div>
-                    <div class="chart-card">
-                        <div class="chart-header">
-                            <h3>Traffic Pattern Levels</h3>
-                            <div class="chart-options">
-                                <button class="active">All</button>
-                                <button>Today</button>
-                                <button>Week</button>
+                    <div class="additional-info">
+                        <div class="info-card">
+                            <h3>Legend</h3>
+                            <div class="hotspots-list">
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-circle" style="color: #f44336;"></i>
+                                        <span>Heavy Traffic</span>
+                                    </div>
+                                </div>
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-circle" style="color: #ff9800;"></i>
+                                        <span>Moderate Traffic</span>
+                                    </div>
+                                </div>
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-circle" style="color: #4caf50;"></i>
+                                        <span>Light Traffic</span>
+                                    </div>
+                                </div>
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-exclamation-triangle" style="color: #9c27b0;"></i>
+                                        <span>Incidents</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <canvas id="patternChart"></canvas>
+                        <div class="info-card">
+                            <h3>Live Incidents</h3>
+                            <div class="hotspots-list">
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-car-crash" style="color: #f44336;"></i>
+                                        <span>Accident on Highway</span>
+                                    </div>
+                                    <div class="hotspot-density high">15 min ago</div>
+                                </div>
+                                <div class="hotspot-item">
+                                    <div class="hotspot-location">
+                                        <i class="fas fa-tools" style="color: #ff9800;"></i>
+                                        <span>Road Work</span>
+                                    </div>
+                                    <div class="hotspot-density medium">Ongoing</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="additional-info">
+                <!-- Analytics Section -->
+                <div class="content-section" id="analytics">
+                    <h2 style="margin-bottom: 1.5rem;">Traffic Analytics</h2>
+                    <div class="analytics-grid">
+                        <div class="analytics-card">
+                            <h3>Peak Hours Analysis</h3>
+                            <canvas id="peakHoursChart" height="250"></canvas>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Vehicle Type Distribution</h3>
+                            <canvas id="vehicleTypeChart" height="250"></canvas>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Weekly Traffic Pattern</h3>
+                            <canvas id="weeklyPatternChart" height="250"></canvas>
+                        </div>
+                        <div class="analytics-card">
+                            <h3>Correlation Analysis</h3>
+                            <canvas id="correlationChart" height="250"></canvas>
+                        </div>
+                    </div>
                     <div class="info-card">
-                        <h3>Traffic Hotspots</h3>
+                        <h3>Key Insights</h3>
                         <div class="hotspots-list">
                             <div class="hotspot-item">
                                 <div class="hotspot-location">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>Main Street & 5th Avenue</span>
+                                    <i class="fas fa-lightbulb" style="color: #4cc9f0;"></i>
+                                    <span>Peak traffic occurs between 7-9 AM and 5-7 PM on weekdays</span>
                                 </div>
-                                <div class="hotspot-density high">High</div>
                             </div>
                             <div class="hotspot-item">
                                 <div class="hotspot-location">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>Downtown Tunnel</span>
+                                    <i class="fas fa-lightbulb" style="color: #4cc9f0;"></i>
+                                    <span>25% increase in vehicle volume on Fridays</span>
                                 </div>
-                                <div class="hotspot-density medium">Medium</div>
                             </div>
                             <div class="hotspot-item">
                                 <div class="hotspot-location">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>River Bridge</span>
+                                    <i class="fas fa-lightbulb" style="color: #4cc9f0;"></i>
+                                    <span>Commercial vehicles contribute to 40% of congestion during peak hours</span>
                                 </div>
-                                <div class="hotspot-density low">Low</div>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Historical Data Section -->
+                <div class="content-section" id="historical-data">
+                    <h2 style="margin-bottom: 1.5rem;">Historical Traffic Data</h2>
+                    <div class="date-filter">
+                        <select>
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 3 Months</option>
+                            <option>Custom Range</option>
+                        </select>
+                        <input type="date" value="2023-10-01">
+                        <input type="date" value="2023-10-07">
+                        <button class="btn-primary"><i class="fas fa-filter"></i> Apply Filter</button>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3>Historical Traffic Trends</h3>
+                            <div class="chart-options">
+                                <button class="active">Daily</button>
+                                <button>Weekly</button>
+                                <button>Monthly</button>
+                            </div>
+                        </div>
+                        <canvas id="historicalChart" height="300"></canvas>
+                    </div>
                     <div class="info-card">
-                        <h3>Traffic Predictions</h3>
-                        <div class="prediction-timeline">
-                            <div class="timeline-item">
-                                <div class="timeline-time">Now</div>
-                                <div class="timeline-status moderate">
-                                    <div class="status-dot"></div>
-                                    <div class="status-line"></div>
-                                </div>
-                                <div class="timeline-label">Moderate traffic</div>
+                        <h3>Data Export</h3>
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button class="btn-primary"><i class="fas fa-file-csv"></i> Export CSV</button>
+                            <button class="btn-primary"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                            <button class="btn-primary"><i class="fas fa-chart-bar"></i> Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div class="content-section" id="settings">
+                    <h2 style="margin-bottom: 1.5rem;">System Settings</h2>
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h3>General Settings</h3>
+                            <div class="setting-item">
+                                <label for="units">Measurement Units</label>
+                                <select id="units">
+                                    <option>Metric (km/h)</option>
+                                    <option>Imperial (mph)</option>
+                                </select>
                             </div>
-                            <div class="timeline-item">
-                                <div class="timeline-time">+30 min</div>
-                                <div class="timeline-status high">
-                                    <div class="status-dot"></div>
-                                    <div class="status-line"></div>
-                                </div>
-                                <div class="timeline-label">Peak hour starts</div>
+                            <div class="setting-item">
+                                <label for="theme">Color Theme</label>
+                                <select id="theme">
+                                    <option>Default Theme</option>
+                                    <option>Dark Mode</option>
+                                    <option>Light Mode</option>
+                                </select>
                             </div>
-                            <div class="timeline-item">
-                                <div class="timeline-time">+1 hr</div>
-                                <div class="timeline-status severe">
-                                    <div class="status-dot"></div>
-                                    <div class="status-line"></div>
-                                </div>
-                                <div class="timeline-label">Severe congestion expected</div>
+                            <div class="setting-item">
+                                <label for="refresh">Data Refresh Rate</label>
+                                <select id="refresh">
+                                    <option>30 seconds</option>
+                                    <option>1 minute</option>
+                                    <option>5 minutes</option>
+                                    <option>10 minutes</option>
+                                </select>
                             </div>
-                            <div class="timeline-item">
-                                <div class="timeline-time">+2 hr</div>
-                                <div class="timeline-status high">
-                                    <div class="status-dot"></div>
-                                    <div class="status-line"></div>
-                                </div>
-                                <div class="timeline-label">Traffic easing</div>
+                            <button class="btn-save"><i class="fas fa-save"></i> Save Changes</button>
+                        </div>
+                        <div class="settings-card">
+                            <h3>Alert Preferences</h3>
+                            <div class="setting-item">
+                                <label>
+                                    <input type="checkbox" checked> Traffic Congestion Alerts
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label>
+                                    <input type="checkbox" checked> Incident Reports
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label>
+                                    <input type="checkbox" checked> Predictive Alerts
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label>
+                                    <input type="checkbox"> System Status Notifications
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label for="alert-sound">Alert Sound</label>
+                                <select id="alert-sound">
+                                    <option>Default</option>
+                                    <option>Chime</option>
+                                    <option>Beep</option>
+                                    <option>None</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-card">
+                            <h3>Camera Management</h3>
+                            <div class="setting-item">
+                                <label for="camera-view">Default Camera View</label>
+                                <select id="camera-view">
+                                    <option>Main Intersection</option>
+                                    <option>Highway Entrance</option>
+                                    <option>Downtown</option>
+                                    <option>Bridge View</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label>
+                                    <input type="checkbox" checked> Auto-switch cameras during incidents
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label>
+                                    <input type="checkbox" checked> Record during high traffic
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <label for="retention">Data Retention Period</label>
+                                <select id="retention">
+                                    <option>30 days</option>
+                                    <option>60 days</option>
+                                    <option>90 days</option>
+                                    <option>1 year</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -208,15 +459,10 @@
         </div>
     </div>
 
-    <div>
-  <p id="current-time"></p>
-  <p id="current-date"></p>
-  <p>Total Vehicles: <span id="total-vehicles"></span></p>
-</div>
+    <div class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </div>
 
-<canvas id="vehicleChart" width="600" height="300"></canvas>
-
-    <script src="/static/script.js"></script>
-
+    <script src="static/script.js"></script>
 </body>
 </html>
