@@ -1,8 +1,8 @@
 from flask import Flask, render_template, send_from_directory, jsonify, request
 import os
-import pattern
-import graph
-import detection
+# import pattern
+# import graph
+# import detection
 import csv
 
 app = Flask(__name__, static_folder='Static', template_folder='Templates')
@@ -60,22 +60,32 @@ def vehicle_data():
     return jsonify(data)
 
 # API: Analyze traffic pattern (calls pattern.py)
+# @app.route('/analyze_pattern', methods=['POST'])
+# def analyze_pattern():
+#     folder = request.json.get('folder', 'output')
+#     lane_count = int(request.json.get('lane_count', 3))
+#     report_csv = 'traffic_report.csv'
+#     graph_png = 'traffic_flow_graph.png'
+#     report_data = pattern.analyze_traffic_from_folder(folder, lane_count, report_csv, graph_png)
+#     return jsonify({'status': 'ok', 'report_csv': report_csv, 'graph_png': graph_png, 'count': len(report_data)})
 @app.route('/analyze_pattern', methods=['POST'])
 def analyze_pattern():
-    folder = request.json.get('folder', 'output')
-    lane_count = int(request.json.get('lane_count', 3))
-    report_csv = 'traffic_report.csv'
-    graph_png = 'traffic_flow_graph.png'
-    report_data = pattern.analyze_traffic_from_folder(folder, lane_count, report_csv, graph_png)
-    return jsonify({'status': 'ok', 'report_csv': report_csv, 'graph_png': graph_png, 'count': len(report_data)})
+    return jsonify({
+        "status": "disabled on cloud",
+        "message": "Run pattern analysis locally"
+    })
 
 # API: Generate density vs green graph (calls graph.py)
+# @app.route('/generate_graph', methods=['POST'])
+# def generate_graph():
+#     csv_path = request.json.get('csv', 'traffic_report.csv')
+#     output_png = request.json.get('output', 'density_vs_green_time.png')
+#     success = graph.generate_density_vs_green_graph(csv_path, output_png)
+#     return jsonify({'status': 'ok' if success else 'fail', 'output_png': output_png})
+
 @app.route('/generate_graph', methods=['POST'])
 def generate_graph():
-    csv_path = request.json.get('csv', 'traffic_report.csv')
-    output_png = request.json.get('output', 'density_vs_green_time.png')
-    success = graph.generate_density_vs_green_graph(csv_path, output_png)
-    return jsonify({'status': 'ok' if success else 'fail', 'output_png': output_png})
+    return jsonify({"status": "disabled on cloud"})
 
 # API: Density data per image (for chart)
 @app.route('/density_data')
@@ -230,5 +240,10 @@ def output_files(filename):
     return send_from_directory('output', filename)
 
 # Main entry point
+# if __name__ == '__main__':
+#     app.run(debug=True)
+
+import os
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
