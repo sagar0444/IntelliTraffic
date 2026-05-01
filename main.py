@@ -8,10 +8,17 @@ import csv
 app = Flask(__name__, static_folder='Static', template_folder='Templates')
 
 # Auto-run detection and pattern analysis if missing
-if not os.path.exists('traffic_report.csv'):
-    detection.run_detection('images', 'output')
-    pattern.analyze_traffic_from_folder('output', lane_count=3, report_csv='traffic_report.csv', graph_png='traffic_flow_graph.png')
-
+# @app.route('/run_detection')
+# def run_detection():
+#     detection.run_detection('images', 'output')
+#     pattern.analyze_traffic_from_folder('output', 3, 'traffic_report.csv', 'traffic_flow_graph.png')
+#     return jsonify({"status": "done"})
+@app.route('/run_detection')
+def run_detection():
+    return jsonify({
+        "status": "disabled on cloud",
+        "message": "Run detection locally due to compute limits"
+    })
 # Serve the dashboard
 @app.route('/')
 def index():
