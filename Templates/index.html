@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% comment %} <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -211,7 +211,56 @@
                 </div>
 
                 <!-- Traffic Map Section -->
-                <div class="content-section" id="traffic-map">
+
+
+                <!-- Traffic Map Section -->
+<div class="content-section" id="traffic-map">
+    <h2 style="margin-bottom: 1.5rem;">Live Traffic Map</h2>
+
+    <div class="map-controls">
+        <button><i class="fas fa-layer-group"></i> Traffic Layers</button>
+        <button><i class="fas fa-search"></i> Search Location</button>
+        <button><i class="fas fa-route"></i> Plan Route</button>
+        <button><i class="fas fa-filter"></i> Filter Vehicles</button>
+    </div>
+
+    <!-- ✅ MAP -->
+    <div class="map-container">
+        <img src="static/Map.png" class="map-image" alt="Traffic Map">
+    </div>
+
+    <!-- ✅ NOW correctly INSIDE -->
+    <div class="additional-info">
+        <div class="info-card">
+            <h3>Legend</h3>
+            <div class="hotspots-list">
+                <div class="hotspot-item">
+                    <span>🔴 Heavy Traffic</span>
+                </div>
+                <div class="hotspot-item">
+                    <span>🟠 Moderate Traffic</span>
+                </div>
+                <div class="hotspot-item">
+                    <span>🟢 Light Traffic</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h3>Live Incidents</h3>
+            <div class="hotspots-list">
+                <div class="hotspot-item">
+                    <span>🚗 Accident - 15 min ago</span>
+                </div>
+                <div class="hotspot-item">
+                    <span>🛠 Road Work - Ongoing</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+                {% comment %} <div class="content-section" id="traffic-map">
                     <h2 style="margin-bottom: 1.5rem;">Live Traffic Map</h2>
                     <div class="map-controls">
                         <button><i class="fas fa-layer-group"></i> Traffic Layers</button>
@@ -224,7 +273,9 @@
                             <i class="fas fa-map-marked-alt" style="margin-right: 10px;"></i>
                             Interactive Traffic Map
                         </div>
-                    </div>
+                    </div> 
+                   
+</div>
                     <div class="additional-info">
                         <div class="info-card">
                             <h3>Legend</h3>
@@ -321,10 +372,10 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> {% endcomment %}
 
                 <!-- Historical Data Section -->
-                <div class="content-section" id="historical-data">
+                {% comment %} <div class="content-section" id="historical-data">
                     <h2 style="margin-bottom: 1.5rem;">Historical Traffic Data</h2>
                     <div class="date-filter">
                         <select>
@@ -464,5 +515,1742 @@
     </div>
 
     <script src="static/script.js"></script>
+</body>
+</html> {% endcomment %} 
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intellitraffic — Smart Traffic Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #060c1a;
+            --panel: #0d1630;
+            --panel2: #111d3a;
+            --border: rgba(99,179,255,0.12);
+            --accent: #3b82f6;
+            --accent2: #06b6d4;
+            --accent3: #8b5cf6;
+            --green: #10b981;
+            --yellow: #f59e0b;
+            --red: #ef4444;
+            --text: #e8f0ff;
+            --muted: #6b7fa8;
+            --glow: rgba(59,130,246,0.3);
+            --r: 12px;
+            --font-mono: 'Space Mono', monospace;
+            --font-sans: 'DM Sans', sans-serif;
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .app { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
+
+        /* ── HEADER ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            height: 64px;
+            background: rgba(6,12,26,0.95);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            box-shadow: 0 0 20px var(--glow);
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%,100% { box-shadow: 0 0 12px var(--glow); }
+            50% { box-shadow: 0 0 28px rgba(6,182,212,0.5); }
+        }
+
+        .logo h1 {
+            font-family: var(--font-mono);
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            background: linear-gradient(90deg, #fff, var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .live-badge {
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 12px;
+            background: rgba(16,185,129,0.12);
+            border: 1px solid rgba(16,185,129,0.25);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--green);
+            font-family: var(--font-mono);
+        }
+
+        .live-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 1.2s ease-in-out infinite;
+        }
+
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+        .header-time {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .header-time span { color: var(--text); }
+
+        .traffic-pill {
+            display: flex; align-items: center; gap: 7px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .traffic-pill.moderate { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); color: var(--yellow); }
+        .traffic-pill.low { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: var(--green); }
+        .traffic-pill.high { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: var(--red); }
+
+        /* ── LAYOUT ── */
+        .body { display: flex; flex: 1; overflow: hidden; }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            background: rgba(13,22,48,0.8);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed { width: 64px; }
+        .sidebar.collapsed .nav-label,
+        .sidebar.collapsed .sidebar-footer-text,
+        .sidebar.collapsed .sys-title { display: none; }
+
+        .sidebar-toggle-btn {
+            display: flex; align-items: center; justify-content: flex-end;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .sidebar-toggle-btn button {
+            background: none; border: none; color: var(--muted);
+            cursor: pointer; padding: 4px; border-radius: 6px;
+            transition: color 0.2s, background 0.2s;
+        }
+        .sidebar-toggle-btn button:hover { color: var(--text); background: var(--panel2); }
+
+        nav { padding: 12px 8px; flex: 1; }
+
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            border: 1px solid transparent;
+            user-select: none;
+        }
+
+        .nav-item:hover { color: var(--text); background: var(--panel2); }
+
+        .nav-item.active {
+            color: var(--accent);
+            background: rgba(59,130,246,0.1);
+            border-color: rgba(59,130,246,0.2);
+        }
+
+        .nav-item i { width: 18px; text-align: center; font-size: 0.95rem; flex-shrink: 0; }
+
+        .sidebar-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .sys-title {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 10px;
+        }
+
+        .sys-row {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-footer-text {
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .sys-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+            flex-shrink: 0;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--panel2) transparent;
+        }
+
+        .main::-webkit-scrollbar { width: 6px; }
+        .main::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 3px; }
+
+        .page { display: none; animation: fadeUp 0.4s ease; }
+        .page.active { display: block; }
+
+        @keyframes fadeUp {
+            from { opacity:0; transform: translateY(16px); }
+            to { opacity:1; transform: translateY(0); }
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .page-title i { color: var(--accent); font-size: 1.2rem; }
+
+        /* ── METRIC CARDS ── */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .metric-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.2s, transform 0.2s;
+            cursor: default;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .metric-card:hover { border-color: rgba(59,130,246,0.35); transform: translateY(-2px); }
+        .metric-card:hover::before { opacity: 1; }
+
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            font-family: var(--font-mono);
+        }
+
+        .metric-val {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .metric-footer {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .metric-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .badge-up { background: rgba(16,185,129,0.15); color: var(--green); }
+        .badge-down { background: rgba(239,68,68,0.15); color: var(--red); }
+        .badge-neutral { background: rgba(107,127,168,0.15); color: var(--muted); }
+
+        .metric-icon-wrap {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            background: rgba(59,130,246,0.1);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--accent);
+            font-size: 1rem;
+        }
+
+        /* ── CHARTS GRID ── */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .charts-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 1.5rem;
+            transition: border-color 0.2s;
+        }
+
+        .card:hover { border-color: rgba(59,130,246,0.25); }
+
+        .card-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .tab-group {
+            display: flex; gap: 4px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 0.72rem;
+            color: var(--muted);
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .chart-wrap { position: relative; height: 220px; }
+
+        /* ── BOTTOM CARDS ── */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .hotspot-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .hotspot-row:last-child { border-bottom: none; }
+
+        .hotspot-left { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; }
+        .hotspot-left i { color: var(--muted); width: 14px; }
+
+        .badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-family: var(--font-mono);
+        }
+
+        .badge.high { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+        .badge.medium { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.25); }
+        .badge.low { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
+
+        /* ── TIMELINE ── */
+        .timeline { display: flex; flex-direction: column; gap: 0; }
+
+        .tl-item {
+            display: grid;
+            grid-template-columns: 56px 16px 1fr;
+            gap: 14px;
+            align-items: flex-start;
+            padding-bottom: 18px;
+        }
+
+        .tl-item:last-child { padding-bottom: 0; }
+
+        .tl-time {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--muted);
+            text-align: right;
+            padding-top: 4px;
+        }
+
+        .tl-spine { display: flex; flex-direction: column; align-items: center; }
+
+        .tl-dot {
+            width: 14px; height: 14px; border-radius: 50%;
+            flex-shrink: 0; position: relative;
+        }
+
+        .tl-dot::after {
+            content: '';
+            position: absolute;
+            inset: -3px;
+            border-radius: 50%;
+            border: 2px solid;
+            border-color: inherit;
+            opacity: 0.3;
+        }
+
+        .tl-line { flex: 1; width: 2px; background: var(--border); margin-top: 4px; }
+        .tl-item:last-child .tl-line { display: none; }
+
+        .tl-dot.moderate { background: var(--yellow); border-color: var(--yellow); }
+        .tl-dot.high { background: var(--red); border-color: var(--red); }
+        .tl-dot.severe { background: #a855f7; border-color: #a855f7; }
+        .tl-dot.clear { background: var(--green); border-color: var(--green); }
+
+        .tl-label { font-size: 0.85rem; font-weight: 500; padding-top: 2px; }
+        .tl-sublabel { font-size: 0.72rem; color: var(--muted); margin-top: 3px; font-family: var(--font-mono); }
+
+        /* ── TRAFFIC MAP ── */
+        .map-controls-bar {
+            display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap;
+        }
+
+        .map-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--panel);
+            color: var(--muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .map-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
+        .map-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.12); }
+
+        .map-area {
+            border-radius: var(--r);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            height: 480px;
+            background: var(--panel);
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .map-area img { width: 100%; height: 100%; object-fit: cover; }
+
+        .map-placeholder-ui {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #091220 100%);
+        }
+
+        .map-grid-svg {
+            position: absolute; inset: 0; opacity: 0.08;
+        }
+
+        .map-center-label {
+            z-index: 2;
+            text-align: center;
+            font-family: var(--font-mono);
+        }
+
+        .map-center-label .big { font-size: 3rem; opacity: 0.15; }
+        .map-center-label p { color: var(--muted); font-size: 0.8rem; margin-top: 6px; }
+
+        /* Traffic dots on map */
+        .map-dot {
+            position: absolute;
+            border-radius: 50%;
+            animation: mapPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes mapPulse {
+            0%,100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.6; }
+        }
+
+        /* ── ANALYTICS ── */
+        .analytics-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 1.25rem;
+            text-align: center;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .kpi-card:hover { border-color: rgba(59,130,246,0.35); transform: translateY(-2px); }
+
+        .kpi-icon {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            margin: 0 auto 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .kpi-icon.blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+        .kpi-icon.cyan { background: rgba(6,182,212,0.15); color: var(--accent2); }
+        .kpi-icon.violet { background: rgba(139,92,246,0.15); color: var(--accent3); }
+        .kpi-icon.green { background: rgba(16,185,129,0.15); color: var(--green); }
+
+        .kpi-num {
+            font-family: var(--font-mono);
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .kpi-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .analytics-charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .insight-row {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .insight-row:last-child { border-bottom: none; }
+
+        .insight-icon {
+            width: 30px; height: 30px;
+            border-radius: 6px;
+            background: rgba(59,130,246,0.1);
+            color: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .insight-text { font-size: 0.85rem; line-height: 1.5; color: var(--text); }
+
+        /* ── HISTORICAL ── */
+        .filter-row {
+            display: flex; gap: 10px; align-items: center;
+            margin-bottom: 1.5rem; flex-wrap: wrap;
+        }
+
+        .filter-row select, .filter-row input[type="date"] {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .filter-row select:focus, .filter-row input[type="date"]:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-row select option { background: var(--panel); }
+
+        .btn-primary {
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+
+        .export-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            padding: 8px 16px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── SETTINGS ── */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .setting-group { margin-bottom: 1rem; }
+
+        .setting-label {
+            display: block;
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+            font-family: var(--font-mono);
+        }
+
+        .setting-select, .setting-input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            padding: 9px 12px;
+            font-size: 0.875rem;
+            font-family: var(--font-sans);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .setting-select:focus, .setting-input:focus { border-color: var(--accent); }
+        .setting-select option { background: #0d1630; }
+
+        .toggle-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .toggle-row:last-child { border-bottom: none; }
+
+        .toggle-left { font-size: 0.875rem; }
+
+        .toggle {
+            width: 40px; height: 22px;
+            background: var(--panel2);
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle.on { background: var(--accent); }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 3px; left: 3px;
+            transition: left 0.2s;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+        }
+
+        .toggle.on::after { left: 21px; }
+
+        .btn-save {
+            background: linear-gradient(90deg, var(--green), #059669);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            padding: 9px 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        /* ── ALERT POPUP ── */
+        .popup-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            z-index: 1000;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+
+        .popup-box {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: min(460px, 90vw);
+            overflow: hidden;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes popIn {
+            from { opacity:0; transform: scale(0.88) translateY(24px); }
+            to { opacity:1; transform: scale(1) translateY(0); }
+        }
+
+        .popup-head {
+            background: linear-gradient(90deg, rgba(59,130,246,0.2), rgba(6,182,212,0.1));
+            border-bottom: 1px solid var(--border);
+            padding: 16px 20px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .popup-head h3 {
+            font-size: 0.95rem;
+            font-family: var(--font-mono);
+            display: flex; align-items: center; gap: 8px;
+            color: var(--accent2);
+        }
+
+        .popup-close {
+            background: rgba(255,255,255,0.06);
+            border: none; border-radius: 6px;
+            width: 28px; height: 28px;
+            cursor: pointer; color: var(--muted);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .popup-close:hover { background: rgba(239,68,68,0.15); color: var(--red); }
+
+        .popup-body { padding: 20px; }
+
+        .popup-row {
+            display: flex; flex-direction: column; gap: 4px;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            margin-bottom: 10px;
+        }
+
+        .popup-row label {
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .popup-row span { font-size: 0.95rem; font-weight: 600; }
+
+        .popup-foot {
+            border-top: 1px solid var(--border);
+            padding: 14px 20px;
+            text-align: right;
+        }
+
+        /* ── INCIDENT BADGE ── */
+        .incident-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .incident-row:last-child { border-bottom: none; }
+
+        .incident-icon {
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .incident-icon.red { background: rgba(239,68,68,0.15); color: var(--red); }
+        .incident-icon.yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+        .incident-info { flex: 1; }
+        .incident-title { font-size: 0.85rem; font-weight: 500; }
+        .incident-sub { font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 4px; }
+
+        /* Mobile */
+        .mobile-toggle {
+            display: none;
+            position: fixed; bottom: 20px; right: 20px;
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: none; color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            z-index: 300;
+            box-shadow: 0 4px 16px rgba(59,130,246,0.4);
+            align-items: center; justify-content: center;
+        }
+
+        @media (max-width: 900px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .charts-grid-3 { grid-template-columns: 1fr; }
+            .analytics-kpi-grid { grid-template-columns: 1fr 1fr; }
+            .analytics-charts { grid-template-columns: 1fr; }
+            .info-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 640px) {
+            .sidebar { position: fixed; height: 100%; z-index: 250; transform: translateX(-100%); transition: transform 0.3s; }
+            .sidebar.open { transform: translateX(0); }
+            .main { padding: 1rem; }
+            .header { padding: 0 1rem; }
+            .mobile-toggle { display: flex; }
+            .analytics-kpi-grid { grid-template-columns: 1fr 1fr; }
+            .metrics-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon"><i class="fas fa-traffic-light"></i></div>
+            <h1>INTELLITRAFFIC</h1>
+        </div>
+        <div class="header-right">
+            <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+            <div class="header-time">
+                <span id="hTime">--:--</span>
+                <span style="margin:0 6px;color:var(--border)">|</span>
+                <span id="hDate" style="font-size:0.75rem"></span>
+            </div>
+            <div class="traffic-pill moderate" id="trafficPill">
+                <i class="fas fa-circle" style="font-size:7px"></i>
+                <span id="trafficLevelText">Moderate</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="body">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-toggle-btn">
+                <button id="sidebarToggle" title="Toggle sidebar"><i class="fas fa-bars"></i></button>
+            </div>
+            <nav>
+                <div class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-home"></i><span class="nav-label">Dashboard</span>
+                </div>
+                <div class="nav-item" data-page="map">
+                    <i class="fas fa-map-marked-alt"></i><span class="nav-label">Traffic Map</span>
+                </div>
+                <div class="nav-item" data-page="analytics">
+                    <i class="fas fa-chart-line"></i><span class="nav-label">Analytics</span>
+                </div>
+                <div class="nav-item" data-page="historical">
+                    <i class="fas fa-history"></i><span class="nav-label">Historical</span>
+                </div>
+                <div class="nav-item" data-page="settings">
+                    <i class="fas fa-cog"></i><span class="nav-label">Settings</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="sys-title">System Status</div>
+                <div class="sys-row">
+                    <span class="sidebar-footer-text">Cameras</span>
+                    <div class="sys-dot"></div>
+                </div>
+                <div class="sys-row">
+                    <span class="sidebar-footer-text">AI Model</span>
+                    <div class="sys-dot"></div>
+                </div>
+                <div class="sys-row">
+                    <span class="sidebar-footer-text">Database</span>
+                    <div class="sys-dot"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+
+            <!-- ═══ DASHBOARD ═══ -->
+            <section class="page active" id="page-dashboard">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Vehicles</div>
+                        <div class="metric-val" id="m-vehicles">847</div>
+                        <div class="metric-footer">
+                            <span class="metric-badge badge-up" id="m-vch">↑ 12.4%</span>
+                            <div class="metric-icon-wrap"><i class="fas fa-car"></i></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Traffic Density</div>
+                        <div class="metric-val" id="m-density">62%</div>
+                        <div class="metric-footer">
+                            <span class="metric-badge badge-up" id="m-dch">↑ 8.1%</span>
+                            <div class="metric-icon-wrap"><i class="fas fa-road"></i></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Avg Speed</div>
+                        <div class="metric-val" id="m-speed">54 km/h</div>
+                        <div class="metric-footer">
+                            <span class="metric-badge badge-down" id="m-sch">↓ 3.2%</span>
+                            <div class="metric-icon-wrap"><i class="fas fa-tachometer-alt"></i></div>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">AI Prediction</div>
+                        <div class="metric-val" id="m-pred" style="font-size:1.2rem;padding-top:6px">Stable</div>
+                        <div class="metric-footer">
+                            <span class="metric-badge badge-neutral">Next 30min</span>
+                            <div class="metric-icon-wrap"><i class="fas fa-brain"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Vehicle Count</span>
+                            <div class="tab-group">
+                                <button class="tab-btn active">24H</button>
+                                <button class="tab-btn">7D</button>
+                                <button class="tab-btn">30D</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrap"><canvas id="vehicleChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">By Type</span>
+                            <div class="tab-group">
+                                <button class="tab-btn active">Now</button>
+                                <button class="tab-btn">Week</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrap"><canvas id="densityChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom:1rem">
+                    <div class="card-header">
+                        <span class="card-title">Weekly Pattern</span>
+                        <div class="tab-group">
+                            <button class="tab-btn active">All</button>
+                            <button class="tab-btn">Weekdays</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrap"><canvas id="patternChart"></canvas></div>
+                </div>
+
+                <div class="info-grid">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Traffic Hotspots</span></div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>Main St & 5th Ave</div>
+                            <span class="badge high">HIGH</span>
+                        </div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>Downtown Tunnel</div>
+                            <span class="badge medium">MED</span>
+                        </div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>River Bridge</div>
+                            <span class="badge low">LOW</span>
+                        </div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>North Bypass</div>
+                            <span class="badge low">LOW</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Predictions</span></div>
+                        <div class="timeline">
+                            <div class="tl-item">
+                                <div class="tl-time">Now</div>
+                                <div class="tl-spine"><div class="tl-dot moderate"></div><div class="tl-line"></div></div>
+                                <div><div class="tl-label">Moderate traffic</div><div class="tl-sublabel">62% density</div></div>
+                            </div>
+                            <div class="tl-item">
+                                <div class="tl-time">+30m</div>
+                                <div class="tl-spine"><div class="tl-dot high"></div><div class="tl-line"></div></div>
+                                <div><div class="tl-label">Peak hour starts</div><div class="tl-sublabel">78% density</div></div>
+                            </div>
+                            <div class="tl-item">
+                                <div class="tl-time">+1hr</div>
+                                <div class="tl-spine"><div class="tl-dot severe"></div><div class="tl-line"></div></div>
+                                <div><div class="tl-label">Severe congestion</div><div class="tl-sublabel">92% density</div></div>
+                            </div>
+                            <div class="tl-item">
+                                <div class="tl-time">+2hr</div>
+                                <div class="tl-spine"><div class="tl-dot clear"></div><div class="tl-line"></div></div>
+                                <div><div class="tl-label">Traffic easing</div><div class="tl-sublabel">45% density</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ TRAFFIC MAP ═══ -->
+            <section class="page" id="page-map">
+                <div class="page-title"><i class="fas fa-map-marked-alt"></i>Live Traffic Map</div>
+                <div class="map-controls-bar">
+                    <button class="map-btn active" onclick="toggleMapBtn(this)"><i class="fas fa-layer-group"></i> Traffic Layers</button>
+                    <button class="map-btn" onclick="toggleMapBtn(this)"><i class="fas fa-search"></i> Search Location</button>
+                    <button class="map-btn" onclick="toggleMapBtn(this)"><i class="fas fa-route"></i> Plan Route</button>
+                    <button class="map-btn" onclick="toggleMapBtn(this)"><i class="fas fa-filter"></i> Filter Vehicles</button>
+                </div>
+                <div class="map-area">
+                    <div class="map-placeholder-ui" id="mapPlaceholder">
+                        <svg class="map-grid-svg" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
+                            <defs><pattern id="mg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0L0 0 0 40" fill="none" stroke="#3b82f6" stroke-width="0.5"/></pattern></defs>
+                            <rect width="800" height="480" fill="url(#mg)"/>
+                            <!-- Road lines -->
+                            <line x1="0" y1="240" x2="800" y2="240" stroke="#3b82f6" stroke-width="3" opacity="0.4"/>
+                            <line x1="400" y1="0" x2="400" y2="480" stroke="#3b82f6" stroke-width="3" opacity="0.4"/>
+                            <line x1="0" y1="120" x2="800" y2="120" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
+                            <line x1="0" y1="360" x2="800" y2="360" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
+                            <line x1="200" y1="0" x2="200" y2="480" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
+                            <line x1="600" y1="0" x2="600" y2="480" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
+                            <!-- Diagonal roads -->
+                            <line x1="0" y1="480" x2="400" y2="0" stroke="#06b6d4" stroke-width="1" opacity="0.15"/>
+                            <line x1="800" y1="480" x2="400" y2="0" stroke="#06b6d4" stroke-width="1" opacity="0.15"/>
+                        </svg>
+                        <!-- Traffic density blobs -->
+                        <div style="position:absolute;width:120px;height:80px;background:radial-gradient(circle,rgba(239,68,68,0.35),transparent);border-radius:50%;top:30%;left:20%"></div>
+                        <div style="position:absolute;width:90px;height:60px;background:radial-gradient(circle,rgba(245,158,11,0.3),transparent);border-radius:50%;top:55%;left:55%"></div>
+                        <div style="position:absolute;width:70px;height:50px;background:radial-gradient(circle,rgba(16,185,129,0.25),transparent);border-radius:50%;top:65%;left:30%"></div>
+                        <div style="position:absolute;width:60px;height:40px;background:radial-gradient(circle,rgba(239,68,68,0.3),transparent);border-radius:50%;top:25%;left:65%"></div>
+                        <!-- Pulsing location markers -->
+                        <div class="map-dot" style="width:14px;height:14px;background:#ef4444;top:33%;left:22%;box-shadow:0 0 0 6px rgba(239,68,68,0.2)"></div>
+                        <div class="map-dot" style="width:12px;height:12px;background:#f59e0b;top:58%;left:58%;box-shadow:0 0 0 5px rgba(245,158,11,0.2);animation-delay:0.5s"></div>
+                        <div class="map-dot" style="width:10px;height:10px;background:#10b981;top:67%;left:32%;box-shadow:0 0 0 4px rgba(16,185,129,0.2);animation-delay:1s"></div>
+                        <div class="map-dot" style="width:12px;height:12px;background:#ef4444;top:27%;left:67%;box-shadow:0 0 0 5px rgba(239,68,68,0.2);animation-delay:0.3s"></div>
+                        <div class="map-center-label">
+                            <div class="big"><i class="fas fa-map-marked-alt"></i></div>
+                            <p>Live Traffic Intelligence Map</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="info-grid">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Legend</span></div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-circle" style="color:var(--red);font-size:10px"></i>Heavy Traffic (&gt;80% density)</div>
+                        </div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-circle" style="color:var(--yellow);font-size:10px"></i>Moderate Traffic (50–80%)</div>
+                        </div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-circle" style="color:var(--green);font-size:10px"></i>Light Traffic (&lt;50%)</div>
+                        </div>
+                        <div class="hotspot-row">
+                            <div class="hotspot-left"><i class="fas fa-triangle-exclamation" style="color:#a855f7;font-size:10px"></i>Active Incident</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Live Incidents</span></div>
+                        <div class="incident-row">
+                            <div class="incident-icon red"><i class="fas fa-car-burst"></i></div>
+                            <div class="incident-info">
+                                <div class="incident-title">Accident — Highway N-12</div>
+                                <div class="incident-sub">15 min ago · 2 lanes blocked</div>
+                            </div>
+                            <span class="badge high">ACTIVE</span>
+                        </div>
+                        <div class="incident-row">
+                            <div class="incident-icon yellow"><i class="fas fa-hard-hat"></i></div>
+                            <div class="incident-info">
+                                <div class="incident-title">Road Work — 5th Ave</div>
+                                <div class="incident-sub">Ongoing · Right lane closed</div>
+                            </div>
+                            <span class="badge medium">ONGOING</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ ANALYTICS ═══ -->
+            <section class="page" id="page-analytics">
+                <div class="page-title"><i class="fas fa-chart-line"></i>Traffic Analytics</div>
+                <div class="analytics-kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon blue"><i class="fas fa-car"></i></div>
+                        <div class="kpi-num">12,847</div>
+                        <div class="kpi-label">Vehicles Today</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon cyan"><i class="fas fa-clock"></i></div>
+                        <div class="kpi-num">7–9 AM</div>
+                        <div class="kpi-label">Peak Hours</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon violet"><i class="fas fa-percent"></i></div>
+                        <div class="kpi-num">+25%</div>
+                        <div class="kpi-label">Friday Volume</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon green"><i class="fas fa-truck"></i></div>
+                        <div class="kpi-num">40%</div>
+                        <div class="kpi-label">Commercial Share</div>
+                    </div>
+                </div>
+
+                <div class="analytics-charts">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Peak Hours</span>
+                            <div class="tab-group">
+                                <button class="tab-btn active">Today</button>
+                                <button class="tab-btn">Week</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrap"><canvas id="peakChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Vehicle Mix</span>
+                            <div class="tab-group">
+                                <button class="tab-btn active">Now</button>
+                                <button class="tab-btn">Avg</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrap"><canvas id="mixChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="analytics-charts">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Weekly Trend</span>
+                        </div>
+                        <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Key Insights</span>
+                        </div>
+                        <div class="insight-row">
+                            <div class="insight-icon"><i class="fas fa-bolt"></i></div>
+                            <div class="insight-text">Peak traffic occurs between 7–9 AM and 5–7 PM on weekdays, coinciding with shift changes.</div>
+                        </div>
+                        <div class="insight-row">
+                            <div class="insight-icon"><i class="fas fa-calendar"></i></div>
+                            <div class="insight-text">25% increase in vehicle volume on Fridays. Plan signal adjustments from 3 PM onwards.</div>
+                        </div>
+                        <div class="insight-row">
+                            <div class="insight-icon"><i class="fas fa-truck"></i></div>
+                            <div class="insight-text">Commercial vehicles contribute 40% of congestion during peak hours despite being only 15% of volume.</div>
+                        </div>
+                        <div class="insight-row">
+                            <div class="insight-icon"><i class="fas fa-moon"></i></div>
+                            <div class="insight-text">Weekend nights (10 PM–2 AM) show 35% higher speeds — optimal window for road maintenance.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ HISTORICAL ═══ -->
+            <section class="page" id="page-historical">
+                <div class="page-title"><i class="fas fa-history"></i>Historical Data</div>
+                <div class="filter-row">
+                    <select class="setting-select" style="width:auto">
+                        <option>Last 7 Days</option>
+                        <option>Last 30 Days</option>
+                        <option>Last 3 Months</option>
+                        <option>Custom Range</option>
+                    </select>
+                    <input type="date" class="setting-input" style="width:auto" value="2024-10-01">
+                    <input type="date" class="setting-input" style="width:auto" value="2024-10-07">
+                    <button class="btn-primary"><i class="fas fa-filter"></i> Apply Filter</button>
+                </div>
+                <div class="card" style="margin-bottom:1rem">
+                    <div class="card-header">
+                        <span class="card-title">Traffic Trends</span>
+                        <div class="tab-group">
+                            <button class="tab-btn active">Daily</button>
+                            <button class="tab-btn">Weekly</button>
+                            <button class="tab-btn">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrap" style="height:280px"><canvas id="histChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><span class="card-title">Export Data</span></div>
+                    <div class="export-row">
+                        <button class="btn-outline"><i class="fas fa-file-csv"></i> Export CSV</button>
+                        <button class="btn-outline"><i class="fas fa-file-pdf"></i> Export PDF</button>
+                        <button class="btn-primary"><i class="fas fa-chart-bar"></i> Generate Report</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ SETTINGS ═══ -->
+            <section class="page" id="page-settings">
+                <div class="page-title"><i class="fas fa-cog"></i>System Settings</div>
+                <div class="settings-grid">
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">General</span></div>
+                        <div class="setting-group">
+                            <label class="setting-label">Measurement Units</label>
+                            <select class="setting-select">
+                                <option>Metric (km/h)</option>
+                                <option>Imperial (mph)</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label class="setting-label">Color Theme</label>
+                            <select class="setting-select">
+                                <option>Dark Mode (Default)</option>
+                                <option>Light Mode</option>
+                                <option>High Contrast</option>
+                            </select>
+                        </div>
+                        <div class="setting-group">
+                            <label class="setting-label">Data Refresh Rate</label>
+                            <select class="setting-select">
+                                <option>30 seconds</option>
+                                <option>1 minute</option>
+                                <option>5 minutes</option>
+                            </select>
+                        </div>
+                        <button class="btn-save"><i class="fas fa-save"></i> Save Changes</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Alerts</span></div>
+                        <div class="toggle-row">
+                            <span class="toggle-left">Traffic Congestion Alerts</span>
+                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <span class="toggle-left">Incident Reports</span>
+                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <span class="toggle-left">Predictive Alerts</span>
+                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <span class="toggle-left">System Notifications</span>
+                            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+                        </div>
+                        <div class="setting-group" style="margin-top:1rem">
+                            <label class="setting-label">Alert Sound</label>
+                            <select class="setting-select">
+                                <option>Default</option>
+                                <option>Chime</option>
+                                <option>Beep</option>
+                                <option>None</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span class="card-title">Camera Management</span></div>
+                        <div class="setting-group">
+                            <label class="setting-label">Default Camera View</label>
+                            <select class="setting-select">
+                                <option>Main Intersection</option>
+                                <option>Highway Entrance</option>
+                                <option>Downtown</option>
+                                <option>Bridge View</option>
+                            </select>
+                        </div>
+                        <div class="toggle-row">
+                            <span class="toggle-left">Auto-switch on incidents</span>
+                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                        </div>
+                        <div class="toggle-row">
+                            <span class="toggle-left">Record during high traffic</span>
+                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+                        </div>
+                        <div class="setting-group" style="margin-top:1rem">
+                            <label class="setting-label">Data Retention</label>
+                            <select class="setting-select">
+                                <option>30 days</option>
+                                <option>60 days</option>
+                                <option>90 days</option>
+                                <option>1 year</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<!-- Mobile toggle -->
+<button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+
+<script>
+// ── CHART DEFAULTS ──
+Chart.defaults.color = '#6b7fa8';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 12;
+
+const palette = {
+    blue: 'rgba(59,130,246,',
+    cyan: 'rgba(6,182,212,',
+    violet: 'rgba(139,92,246,',
+    green: 'rgba(16,185,129,',
+    yellow: 'rgba(245,158,11,',
+    red: 'rgba(239,68,68,'
+};
+
+function makeGradient(ctx, color1, color2) {
+    const g = ctx.createLinearGradient(0, 0, 0, 240);
+    g.addColorStop(0, color1);
+    g.addColorStop(1, color2);
+    return g;
+}
+
+// ── NAVIGATION ──
+const navItems = document.querySelectorAll('.nav-item');
+const pages = document.querySelectorAll('.page');
+
+navItems.forEach(item => {
+    item.addEventListener('click', () => {
+        navItems.forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        const pageId = 'page-' + item.dataset.page;
+        pages.forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        // Close mobile sidebar
+        if (window.innerWidth <= 640) {
+            document.getElementById('sidebar').classList.remove('open');
+        }
+    });
+});
+
+// ── SIDEBAR TOGGLE ──
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('collapsed');
+});
+
+document.getElementById('mobileToggle').addEventListener('click', () => {
+    document.getElementById('sidebar').classList.toggle('open');
+});
+
+// ── TAB BUTTONS ──
+document.querySelectorAll('.tab-group').forEach(group => {
+    group.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            group.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+});
+
+// ── MAP BUTTONS ──
+function toggleMapBtn(btn) {
+    btn.classList.toggle('active');
+}
+
+// ── DATE/TIME ──
+function updateClock() {
+    const now = new Date();
+    document.getElementById('hTime').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('hDate').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+updateClock();
+setInterval(updateClock, 60000);
+
+// ── METRICS UPDATE ──
+function updateMetrics() {
+    const v = Math.floor(Math.random() * 400) + 600;
+    const d = Math.floor(Math.random() * 30) + 45;
+    const s = Math.floor(Math.random() * 25) + 42;
+
+    document.getElementById('m-vehicles').textContent = v;
+    document.getElementById('m-density').textContent = d + '%';
+    document.getElementById('m-speed').textContent = s + ' km/h';
+
+    const pill = document.getElementById('trafficPill');
+    const txt = document.getElementById('trafficLevelText');
+    pill.className = 'traffic-pill';
+    if (d < 55) { pill.classList.add('low'); txt.textContent = 'Low'; }
+    else if (d < 72) { pill.classList.add('moderate'); txt.textContent = 'Moderate'; }
+    else { pill.classList.add('high'); txt.textContent = 'High'; }
+
+    const preds = ['Stable', 'Increasing', 'Easing', 'Congested'];
+    document.getElementById('m-pred').textContent = preds[Math.floor(Math.random() * preds.length)];
+
+    checkAlert(d, v);
+}
+
+// ── ALERT POPUP ──
+function checkAlert(density, count) {
+    if (density > 72 && !document.querySelector('.popup-overlay')) {
+        const patterns = ['Heavy Congestion', 'Severe Slowdown', 'Standstill'];
+        const instrs = ['Extend Green Time by 15s', 'Emergency Green Phase', 'Reduce Cycle Time'];
+        showAlert({
+            pattern: patterns[Math.floor(Math.random() * patterns.length)],
+            instruction: instrs[Math.floor(Math.random() * instrs.length)],
+            count,
+            density: density.toFixed(1),
+            ts: new Date().toLocaleTimeString()
+        });
+    }
+}
+
+function showAlert(d) {
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    overlay.innerHTML = `
+        <div class="popup-box">
+            <div class="popup-head">
+                <h3><i class="fas fa-traffic-light"></i> Traffic Signal Alert</h3>
+                <button class="popup-close" onclick="document.querySelector('.popup-overlay').remove()">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="popup-body">
+                <div class="popup-row"><label>Pattern</label><span>${d.pattern}</span></div>
+                <div class="popup-row"><label>Signal Instruction</label><span>${d.instruction}</span></div>
+                <div class="popup-row"><label>Vehicle Count</label><span>${d.count}</span></div>
+                <div class="popup-row"><label>Traffic Density</label><span>${d.density}%</span></div>
+                <div class="popup-row"><label>Timestamp</label><span>${d.ts}</span></div>
+            </div>
+            <div class="popup-foot">
+                <button class="btn-primary" onclick="document.querySelector('.popup-overlay').remove()">
+                    <i class="fas fa-check"></i> Acknowledge
+                </button>
+            </div>
+        </div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => { if (overlay.parentElement) overlay.remove(); }, 10000);
+}
+
+// ── INIT CHARTS ──
+function initCharts() {
+    // Vehicle Count Line
+    const vc = document.getElementById('vehicleChart').getContext('2d');
+    const vcGrad = makeGradient(vc, 'rgba(59,130,246,0.35)', 'rgba(59,130,246,0)');
+    new Chart(vc, {
+        type: 'line',
+        data: {
+            labels: ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00'],
+            datasets: [{
+                data: [120,80,350,420,380,450,600,320],
+                borderColor: '#3b82f6',
+                backgroundColor: vcGrad,
+                borderWidth: 2.5,
+                tension: 0.4,
+                fill: true,
+                pointRadius: 4,
+                pointBackgroundColor: '#3b82f6',
+                pointBorderColor: '#060c1a',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
+                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
+            }
+        }
+    });
+
+    // Density Bar
+    const dc = document.getElementById('densityChart').getContext('2d');
+    new Chart(dc, {
+        type: 'bar',
+        data: {
+            labels: ['Cars','Trucks','Buses','Motos'],
+            datasets: [{
+                data: [65,20,10,5],
+                backgroundColor: ['rgba(59,130,246,0.8)','rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(139,92,246,0.8)'],
+                borderRadius: 6, borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8', callback: v => v + '%' } },
+                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
+            }
+        }
+    });
+
+    // Pattern Line
+    const pc = document.getElementById('patternChart').getContext('2d');
+    const pcGrad = makeGradient(pc, 'rgba(6,182,212,0.25)', 'rgba(6,182,212,0)');
+    new Chart(pc, {
+        type: 'line',
+        data: {
+            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            datasets: [{
+                data: [2,3,2,3,3,1,1],
+                borderColor: '#06b6d4',
+                backgroundColor: pcGrad,
+                borderWidth: 2.5, tension: 0.4, fill: true,
+                pointRadius: 6,
+                pointBackgroundColor: ctx => { const v=ctx.parsed?.y; return v===1?'#10b981':v===2?'#f59e0b':'#ef4444'; },
+                pointBorderColor: '#060c1a', pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: c => {const v=c.parsed.y;return v===1?'Low':v===2?'Medium':'High';} } }
+            },
+            scales: {
+                y: { min:0,max:4, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                     ticks: { color: '#6b7fa8', stepSize:1, callback: v => v===1?'Low':v===2?'Med':v===3?'High':'' } },
+                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
+            }
+        }
+    });
+
+    // Peak Hours
+    const phc = document.getElementById('peakChart').getContext('2d');
+    new Chart(phc, {
+        type: 'bar',
+        data: {
+            labels: ['6AM','9AM','12PM','3PM','6PM','9PM'],
+            datasets: [{
+                data: [350,600,450,500,750,300],
+                backgroundColor: ctx => {
+                    const v = ctx.parsed.y;
+                    if (v > 600) return 'rgba(239,68,68,0.8)';
+                    if (v > 450) return 'rgba(245,158,11,0.8)';
+                    return 'rgba(59,130,246,0.8)';
+                },
+                borderRadius: 6, borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
+                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
+            }
+        }
+    });
+
+    // Vehicle Mix Doughnut
+    const mc = document.getElementById('mixChart').getContext('2d');
+    new Chart(mc, {
+        type: 'doughnut',
+        data: {
+            labels: ['Cars','Trucks','Motorcycles','Buses'],
+            datasets: [{
+                data: [65,15,12,8],
+                backgroundColor: ['#3b82f6','#06b6d4','#8b5cf6','#10b981'],
+                borderColor: '#0d1630', borderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'bottom', labels: { color: '#6b7fa8', padding: 14, usePointStyle: true, pointStyleWidth: 8 } }
+            }
+        }
+    });
+
+    // Weekly
+    const wc = document.getElementById('weeklyChart').getContext('2d');
+    const wcGrad = makeGradient(wc, 'rgba(139,92,246,0.25)', 'rgba(139,92,246,0)');
+    new Chart(wc, {
+        type: 'line',
+        data: {
+            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+            datasets: [{
+                label: 'This Week',
+                data: [820,940,880,960,1100,650,580],
+                borderColor: '#8b5cf6',
+                backgroundColor: wcGrad,
+                borderWidth: 2.5, tension: 0.4, fill: true,
+                pointRadius: 4, pointBackgroundColor: '#8b5cf6', pointBorderColor: '#060c1a', pointBorderWidth: 2
+            },{
+                label: 'Last Week',
+                data: [760,900,820,900,1050,600,540],
+                borderColor: 'rgba(107,127,168,0.5)',
+                borderWidth: 1.5, tension: 0.4, borderDash: [5,5],
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#6b7fa8', padding: 14, usePointStyle: true } } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
+                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
+            }
+        }
+    });
+
+    // Historical
+    const hc = document.getElementById('histChart').getContext('2d');
+    const hcGrad = makeGradient(hc, 'rgba(16,185,129,0.25)', 'rgba(16,185,129,0)');
+    new Chart(hc, {
+        type: 'line',
+        data: {
+            labels: ['Oct 1','Oct 2','Oct 3','Oct 4','Oct 5','Oct 6','Oct 7'],
+            datasets: [{
+                label: 'Vehicle Count',
+                data: [980,1050,920,1100,1200,750,680],
+                borderColor: '#10b981',
+                backgroundColor: hcGrad,
+                borderWidth: 2.5, tension: 0.4, fill: true,
+                pointRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: '#060c1a', pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#6b7fa8', usePointStyle: true } } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
+                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
+            }
+        }
+    });
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+    initCharts();
+    updateMetrics();
+    setInterval(updateMetrics, 30000);
+    setTimeout(updateMetrics, 2000);
+});
+</script>
 </body>
 </html>
