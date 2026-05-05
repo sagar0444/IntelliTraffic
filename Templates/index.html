@@ -1,1733 +1,842 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intellitraffic — Smart Traffic Intelligence</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg: #060c1a;
-            --panel: #0d1630;
-            --panel2: #111d3a;
-            --border: rgba(99,179,255,0.12);
-            --accent: #3b82f6;
-            --accent2: #06b6d4;
-            --accent3: #8b5cf6;
-            --green: #10b981;
-            --yellow: #f59e0b;
-            --red: #ef4444;
-            --text: #e8f0ff;
-            --muted: #6b7fa8;
-            --glow: rgba(59,130,246,0.3);
-            --r: 12px;
-            --font-mono: 'Space Mono', monospace;
-            --font-sans: 'DM Sans', sans-serif;
-        }
-
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-        body {
-            font-family: var(--font-sans);
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* Animated background grid */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
-            background-size: 48px 48px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .app { display: flex; flex-direction: column; height: 100vh; position: relative; z-index: 1; }
-
-        /* ── HEADER ── */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 2rem;
-            height: 64px;
-            background: rgba(6,12,26,0.95);
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(20px);
-            flex-shrink: 0;
-            position: sticky;
-            top: 0;
-            z-index: 200;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-icon {
-            width: 36px; height: 36px;
-            background: linear-gradient(135deg, var(--accent), var(--accent2));
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1rem;
-            box-shadow: 0 0 20px var(--glow);
-            animation: logoGlow 3s ease-in-out infinite;
-        }
-
-        @keyframes logoGlow {
-            0%,100% { box-shadow: 0 0 12px var(--glow); }
-            50% { box-shadow: 0 0 28px rgba(6,182,212,0.5); }
-        }
-
-        .logo h1 {
-            font-family: var(--font-mono);
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            background: linear-gradient(90deg, #fff, var(--accent2));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
-        }
-
-        .live-badge {
-            display: flex; align-items: center; gap: 6px;
-            padding: 4px 12px;
-            background: rgba(16,185,129,0.12);
-            border: 1px solid rgba(16,185,129,0.25);
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--green);
-            font-family: var(--font-mono);
-        }
-
-        .live-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: var(--green);
-            animation: blink 1.2s ease-in-out infinite;
-        }
-
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-        .header-time {
-            font-family: var(--font-mono);
-            font-size: 0.85rem;
-            color: var(--muted);
-        }
-
-        .header-time span { color: var(--text); }
-
-        .traffic-pill {
-            display: flex; align-items: center; gap: 7px;
-            padding: 5px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .traffic-pill.moderate { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); color: var(--yellow); }
-        .traffic-pill.low { border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: var(--green); }
-        .traffic-pill.high { border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: var(--red); }
-
-        /* ── LAYOUT ── */
-        .body { display: flex; flex: 1; overflow: hidden; }
-
-        /* ── SIDEBAR ── */
-        .sidebar {
-            width: 220px;
-            flex-shrink: 0;
-            background: rgba(13,22,48,0.8);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            transition: width 0.3s ease;
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed { width: 64px; }
-        .sidebar.collapsed .nav-label,
-        .sidebar.collapsed .sidebar-footer-text,
-        .sidebar.collapsed .sys-title { display: none; }
-
-        .sidebar-toggle-btn {
-            display: flex; align-items: center; justify-content: flex-end;
-            padding: 12px 14px;
-            border-bottom: 1px solid var(--border);
-            cursor: pointer;
-        }
-
-        .sidebar-toggle-btn button {
-            background: none; border: none; color: var(--muted);
-            cursor: pointer; padding: 4px; border-radius: 6px;
-            transition: color 0.2s, background 0.2s;
-        }
-        .sidebar-toggle-btn button:hover { color: var(--text); background: var(--panel2); }
-
-        nav { padding: 12px 8px; flex: 1; }
-
-        .nav-item {
-            display: flex; align-items: center; gap: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            color: var(--muted);
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            border: 1px solid transparent;
-            user-select: none;
-        }
-
-        .nav-item:hover { color: var(--text); background: var(--panel2); }
-
-        .nav-item.active {
-            color: var(--accent);
-            background: rgba(59,130,246,0.1);
-            border-color: rgba(59,130,246,0.2);
-        }
-
-        .nav-item i { width: 18px; text-align: center; font-size: 0.95rem; flex-shrink: 0; }
-
-        .sidebar-footer {
-            padding: 12px;
-            border-top: 1px solid var(--border);
-        }
-
-        .sys-title {
-            font-size: 0.65rem;
-            font-family: var(--font-mono);
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 10px;
-        }
-
-        .sys-row {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .sidebar-footer-text {
-            font-size: 0.78rem;
-            color: var(--muted);
-        }
-
-        .sys-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: var(--green);
-            box-shadow: 0 0 6px var(--green);
-            flex-shrink: 0;
-        }
-
-        /* ── MAIN ── */
-        .main {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem;
-            scrollbar-width: thin;
-            scrollbar-color: var(--panel2) transparent;
-        }
-
-        .main::-webkit-scrollbar { width: 6px; }
-        .main::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 3px; }
-
-        .page { display: none; animation: fadeUp 0.4s ease; }
-        .page.active { display: block; }
-
-        @keyframes fadeUp {
-            from { opacity:0; transform: translateY(16px); }
-            to { opacity:1; transform: translateY(0); }
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            display: flex; align-items: center; gap: 10px;
-        }
-
-        .page-title i { color: var(--accent); font-size: 1.2rem; }
-
-        /* ── METRIC CARDS ── */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .metric-card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 1.25rem 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: relative;
-            overflow: hidden;
-            transition: border-color 0.2s, transform 0.2s;
-            cursor: default;
-        }
-
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, var(--accent), var(--accent2));
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .metric-card:hover { border-color: rgba(59,130,246,0.35); transform: translateY(-2px); }
-        .metric-card:hover::before { opacity: 1; }
-
-        .metric-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            font-family: var(--font-mono);
-        }
-
-        .metric-val {
-            font-size: 2rem;
-            font-weight: 700;
-            font-family: var(--font-mono);
-            color: var(--text);
-            line-height: 1;
-        }
-
-        .metric-footer {
-            display: flex; align-items: center; justify-content: space-between;
-        }
-
-        .metric-badge {
-            font-size: 0.72rem;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-
-        .badge-up { background: rgba(16,185,129,0.15); color: var(--green); }
-        .badge-down { background: rgba(239,68,68,0.15); color: var(--red); }
-        .badge-neutral { background: rgba(107,127,168,0.15); color: var(--muted); }
-
-        .metric-icon-wrap {
-            width: 36px; height: 36px;
-            border-radius: 8px;
-            background: rgba(59,130,246,0.1);
-            display: flex; align-items: center; justify-content: center;
-            color: var(--accent);
-            font-size: 1rem;
-        }
-
-        /* ── CHARTS GRID ── */
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .charts-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 1.5rem;
-            transition: border-color 0.2s;
-        }
-
-        .card:hover { border-color: rgba(59,130,246,0.25); }
-
-        .card-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 1.25rem;
-        }
-
-        .card-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text);
-            font-family: var(--font-mono);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-        }
-
-        .tab-group {
-            display: flex; gap: 4px;
-        }
-
-        .tab-btn {
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 3px 10px;
-            font-size: 0.72rem;
-            color: var(--muted);
-            cursor: pointer;
-            font-family: var(--font-mono);
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active, .tab-btn:hover {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-        }
-
-        .chart-wrap { position: relative; height: 220px; }
-
-        /* ── BOTTOM CARDS ── */
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .hotspot-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-        }
-
-        .hotspot-row:last-child { border-bottom: none; }
-
-        .hotspot-left { display: flex; align-items: center; gap: 10px; font-size: 0.875rem; }
-        .hotspot-left i { color: var(--muted); width: 14px; }
-
-        .badge {
-            font-size: 0.7rem;
-            font-weight: 700;
-            padding: 2px 10px;
-            border-radius: 10px;
-            font-family: var(--font-mono);
-        }
-
-        .badge.high { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
-        .badge.medium { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.25); }
-        .badge.low { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.25); }
-
-        /* ── TIMELINE ── */
-        .timeline { display: flex; flex-direction: column; gap: 0; }
-
-        .tl-item {
-            display: grid;
-            grid-template-columns: 56px 16px 1fr;
-            gap: 14px;
-            align-items: flex-start;
-            padding-bottom: 18px;
-        }
-
-        .tl-item:last-child { padding-bottom: 0; }
-
-        .tl-time {
-            font-family: var(--font-mono);
-            font-size: 0.72rem;
-            color: var(--muted);
-            text-align: right;
-            padding-top: 4px;
-        }
-
-        .tl-spine { display: flex; flex-direction: column; align-items: center; }
-
-        .tl-dot {
-            width: 14px; height: 14px; border-radius: 50%;
-            flex-shrink: 0; position: relative;
-        }
-
-        .tl-dot::after {
-            content: '';
-            position: absolute;
-            inset: -3px;
-            border-radius: 50%;
-            border: 2px solid;
-            border-color: inherit;
-            opacity: 0.3;
-        }
-
-        .tl-line { flex: 1; width: 2px; background: var(--border); margin-top: 4px; }
-        .tl-item:last-child .tl-line { display: none; }
-
-        .tl-dot.moderate { background: var(--yellow); border-color: var(--yellow); }
-        .tl-dot.high { background: var(--red); border-color: var(--red); }
-        .tl-dot.severe { background: #a855f7; border-color: #a855f7; }
-        .tl-dot.clear { background: var(--green); border-color: var(--green); }
-
-        .tl-label { font-size: 0.85rem; font-weight: 500; padding-top: 2px; }
-        .tl-sublabel { font-size: 0.72rem; color: var(--muted); margin-top: 3px; font-family: var(--font-mono); }
-
-        /* ── TRAFFIC MAP ── */
-        .map-controls-bar {
-            display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap;
-        }
-
-        .map-btn {
-            display: flex; align-items: center; gap: 6px;
-            padding: 7px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: var(--panel);
-            color: var(--muted);
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .map-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.08); }
-        .map-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.12); }
-
-        .map-area {
-            border-radius: var(--r);
-            overflow: hidden;
-            border: 1px solid var(--border);
-            height: 480px;
-            background: var(--panel);
-            display: flex; align-items: center; justify-content: center;
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .map-area img { width: 100%; height: 100%; object-fit: cover; }
-
-        .map-placeholder-ui {
-            position: absolute; inset: 0;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #091220 100%);
-        }
-
-        .map-grid-svg {
-            position: absolute; inset: 0; opacity: 0.08;
-        }
-
-        .map-center-label {
-            z-index: 2;
-            text-align: center;
-            font-family: var(--font-mono);
-        }
-
-        .map-center-label .big { font-size: 3rem; opacity: 0.15; }
-        .map-center-label p { color: var(--muted); font-size: 0.8rem; margin-top: 6px; }
-
-        /* Traffic dots on map */
-        .map-dot {
-            position: absolute;
-            border-radius: 50%;
-            animation: mapPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes mapPulse {
-            0%,100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.5); opacity: 0.6; }
-        }
-
-        /* ── ANALYTICS ── */
-        .analytics-kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .kpi-card {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 1.25rem;
-            text-align: center;
-            transition: border-color 0.2s, transform 0.2s;
-        }
-
-        .kpi-card:hover { border-color: rgba(59,130,246,0.35); transform: translateY(-2px); }
-
-        .kpi-icon {
-            width: 44px; height: 44px;
-            border-radius: 10px;
-            margin: 0 auto 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem;
-        }
-
-        .kpi-icon.blue { background: rgba(59,130,246,0.15); color: var(--accent); }
-        .kpi-icon.cyan { background: rgba(6,182,212,0.15); color: var(--accent2); }
-        .kpi-icon.violet { background: rgba(139,92,246,0.15); color: var(--accent3); }
-        .kpi-icon.green { background: rgba(16,185,129,0.15); color: var(--green); }
-
-        .kpi-num {
-            font-family: var(--font-mono);
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .kpi-label {
-            font-size: 0.72rem;
-            color: var(--muted);
-            margin-top: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        .analytics-charts {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .insight-row {
-            display: flex; align-items: flex-start; gap: 10px;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-
-        .insight-row:last-child { border-bottom: none; }
-
-        .insight-icon {
-            width: 30px; height: 30px;
-            border-radius: 6px;
-            background: rgba(59,130,246,0.1);
-            color: var(--accent);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-        }
-
-        .insight-text { font-size: 0.85rem; line-height: 1.5; color: var(--text); }
-
-        /* ── HISTORICAL ── */
-        .filter-row {
-            display: flex; gap: 10px; align-items: center;
-            margin-bottom: 1.5rem; flex-wrap: wrap;
-        }
-
-        .filter-row select, .filter-row input[type="date"] {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            padding: 8px 12px;
-            font-size: 0.85rem;
-            font-family: var(--font-sans);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .filter-row select:focus, .filter-row input[type="date"]:focus {
-            border-color: var(--accent);
-        }
-
-        .filter-row select option { background: var(--panel); }
-
-        .btn-primary {
-            background: var(--accent);
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            padding: 8px 18px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex; align-items: center; gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
-
-        .export-row { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        .btn-outline {
-            background: transparent;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--muted);
-            padding: 8px 16px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            cursor: pointer;
-            display: flex; align-items: center; gap: 6px;
-            transition: all 0.2s;
-        }
-
-        .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
-
-        /* ── SETTINGS ── */
-        .settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.25rem;
-        }
-
-        .setting-group { margin-bottom: 1rem; }
-
-        .setting-label {
-            display: block;
-            font-size: 0.78rem;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 6px;
-            font-family: var(--font-mono);
-        }
-
-        .setting-select, .setting-input {
-            width: 100%;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text);
-            padding: 9px 12px;
-            font-size: 0.875rem;
-            font-family: var(--font-sans);
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .setting-select:focus, .setting-input:focus { border-color: var(--accent); }
-        .setting-select option { background: #0d1630; }
-
-        .toggle-row {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-
-        .toggle-row:last-child { border-bottom: none; }
-
-        .toggle-left { font-size: 0.875rem; }
-
-        .toggle {
-            width: 40px; height: 22px;
-            background: var(--panel2);
-            border-radius: 11px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        .toggle.on { background: var(--accent); }
-
-        .toggle::after {
-            content: '';
-            position: absolute;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: white;
-            top: 3px; left: 3px;
-            transition: left 0.2s;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-        }
-
-        .toggle.on::after { left: 21px; }
-
-        .btn-save {
-            background: linear-gradient(90deg, var(--green), #059669);
-            border: none;
-            border-radius: 8px;
-            color: #fff;
-            padding: 9px 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex; align-items: center; gap: 6px;
-            transition: all 0.2s;
-            margin-top: 1rem;
-        }
-
-        .btn-save:hover { opacity: 0.9; transform: translateY(-1px); }
-
-        /* ── ALERT POPUP ── */
-        .popup-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(6px);
-            z-index: 1000;
-            display: flex; align-items: center; justify-content: center;
-            animation: fadeIn 0.2s ease;
-        }
-
-        @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
-
-        .popup-box {
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            width: min(460px, 90vw);
-            overflow: hidden;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.5);
-            animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        @keyframes popIn {
-            from { opacity:0; transform: scale(0.88) translateY(24px); }
-            to { opacity:1; transform: scale(1) translateY(0); }
-        }
-
-        .popup-head {
-            background: linear-gradient(90deg, rgba(59,130,246,0.2), rgba(6,182,212,0.1));
-            border-bottom: 1px solid var(--border);
-            padding: 16px 20px;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-
-        .popup-head h3 {
-            font-size: 0.95rem;
-            font-family: var(--font-mono);
-            display: flex; align-items: center; gap: 8px;
-            color: var(--accent2);
-        }
-
-        .popup-close {
-            background: rgba(255,255,255,0.06);
-            border: none; border-radius: 6px;
-            width: 28px; height: 28px;
-            cursor: pointer; color: var(--muted);
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .popup-close:hover { background: rgba(239,68,68,0.15); color: var(--red); }
-
-        .popup-body { padding: 20px; }
-
-        .popup-row {
-            display: flex; flex-direction: column; gap: 4px;
-            padding: 10px 12px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 8px;
-            border-left: 3px solid var(--accent);
-            margin-bottom: 10px;
-        }
-
-        .popup-row label {
-            font-size: 0.68rem;
-            font-family: var(--font-mono);
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .popup-row span { font-size: 0.95rem; font-weight: 600; }
-
-        .popup-foot {
-            border-top: 1px solid var(--border);
-            padding: 14px 20px;
-            text-align: right;
-        }
-
-        /* ── INCIDENT BADGE ── */
-        .incident-row {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
-
-        .incident-row:last-child { border-bottom: none; }
-
-        .incident-icon {
-            width: 32px; height: 32px;
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.9rem;
-            flex-shrink: 0;
-        }
-
-        .incident-icon.red { background: rgba(239,68,68,0.15); color: var(--red); }
-        .incident-icon.yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
-
-        .incident-info { flex: 1; }
-        .incident-title { font-size: 0.85rem; font-weight: 500; }
-        .incident-sub { font-size: 0.72rem; color: var(--muted); font-family: var(--font-mono); }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--panel2); border-radius: 4px; }
-
-        /* Mobile */
-        .mobile-toggle {
-            display: none;
-            position: fixed; bottom: 20px; right: 20px;
-            width: 48px; height: 48px;
-            border-radius: 50%;
-            background: var(--accent);
-            border: none; color: white;
-            font-size: 1.1rem;
-            cursor: pointer;
-            z-index: 300;
-            box-shadow: 0 4px 16px rgba(59,130,246,0.4);
-            align-items: center; justify-content: center;
-        }
-
-        @media (max-width: 900px) {
-            .charts-grid { grid-template-columns: 1fr; }
-            .charts-grid-3 { grid-template-columns: 1fr; }
-            .analytics-kpi-grid { grid-template-columns: 1fr 1fr; }
-            .analytics-charts { grid-template-columns: 1fr; }
-            .info-grid { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 640px) {
-            .sidebar { position: fixed; height: 100%; z-index: 250; transform: translateX(-100%); transition: transform 0.3s; }
-            .sidebar.open { transform: translateX(0); }
-            .main { padding: 1rem; }
-            .header { padding: 0 1rem; }
-            .mobile-toggle { display: flex; }
-            .analytics-kpi-grid { grid-template-columns: 1fr 1fr; }
-            .metrics-grid { grid-template-columns: 1fr 1fr; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intellitraffic — Smart Traffic Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#060c1a;--panel:#0d1630;--panel2:#111d3a;--border:rgba(99,179,255,.12);--accent:#3b82f6;--accent2:#06b6d4;--accent3:#8b5cf6;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--text:#e8f0ff;--muted:#6b7fa8;--glow:rgba(59,130,246,.3);--r:12px;--fm:'Space Mono',monospace;--fs:'DM Sans',sans-serif}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}html,body{height:100%}
+body{font-family:var(--fs);background:var(--bg);color:var(--text);overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.app{display:flex;flex-direction:column;height:100vh;position:relative;z-index:1}
+
+/* HEADER */
+.header{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:60px;background:rgba(6,12,26,.97);border-bottom:1px solid var(--border);flex-shrink:0;position:sticky;top:0;z-index:200}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.95rem;box-shadow:0 0 18px var(--glow);animation:logoGlow 3s ease-in-out infinite}
+@keyframes logoGlow{0%,100%{box-shadow:0 0 12px var(--glow)}50%{box-shadow:0 0 26px rgba(6,182,212,.55)}}
+.logo h1{font-family:var(--fm);font-size:1rem;font-weight:700;letter-spacing:.04em;background:linear-gradient(90deg,#fff,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-r{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.live-badge{display:flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);border-radius:20px;font-size:.7rem;font-weight:600;color:var(--green);font-family:var(--fm)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.hdr-time{font-family:var(--fm);font-size:.78rem;color:var(--muted)}
+.hdr-time span{color:var(--text)}
+.t-pill{display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);font-size:.75rem;font-weight:600;cursor:default}
+.t-pill.moderate{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.08);color:var(--yellow)}
+.t-pill.low{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:var(--green)}
+.t-pill.high{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:var(--red)}
+
+/* LAYOUT */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:210px;flex-shrink:0;background:rgba(13,22,48,.85);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .28s ease;overflow:hidden}
+.sidebar.collapsed{width:58px}
+.sidebar.collapsed .nav-label,.sidebar.collapsed .sys-title,.sidebar.collapsed .sft{display:none}
+.sb-top{display:flex;align-items:center;justify-content:flex-end;padding:10px 12px;border-bottom:1px solid var(--border)}
+.icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:5px 6px;border-radius:6px;transition:color .2s,background .2s;font-size:.9rem}
+.icon-btn:hover{color:var(--text);background:var(--panel2)}
+nav{padding:10px 8px;flex:1}
+.nav-item{display:flex;align-items:center;gap:12px;padding:9px 11px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:.85rem;font-weight:500;transition:all .2s;margin-bottom:3px;white-space:nowrap;border:1px solid transparent;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--panel2)}
+.nav-item.active{color:var(--accent);background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.2)}
+.nav-item i{width:17px;text-align:center;font-size:.9rem;flex-shrink:0}
+.sb-foot{padding:10px 12px;border-top:1px solid var(--border)}
+.sys-title{font-size:.6rem;font-family:var(--fm);color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px}
+.sys-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.sft{font-size:.75rem;color:var(--muted)}
+.sys-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:1.5rem;scrollbar-width:thin;scrollbar-color:var(--panel2) transparent}
+.main::-webkit-scrollbar{width:5px}
+.main::-webkit-scrollbar-thumb{background:var(--panel2);border-radius:3px}
+.page{display:none;animation:fadeUp .35s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.pg-title{font-size:1.3rem;font-weight:700;margin-bottom:1.2rem;display:flex;align-items:center;gap:9px}
+.pg-title i{color:var(--accent);font-size:1.1rem}
+
+/* CARD */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:1.2rem;transition:border-color .2s}
+.card:hover{border-color:rgba(59,130,246,.22)}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.card-title{font-size:.75rem;font-weight:600;color:var(--text);font-family:var(--fm);text-transform:uppercase;letter-spacing:.04em}
+
+/* METRICS */
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:.85rem;margin-bottom:1.1rem}
+.metric-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem 1.2rem;display:flex;flex-direction:column;gap:7px;position:relative;overflow:hidden;transition:border-color .2s,transform .2s}
+.metric-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .2s}
+.metric-card:hover{border-color:rgba(59,130,246,.35);transform:translateY(-2px)}
+.metric-card:hover::before{opacity:1}
+.m-label{font-size:.68rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:var(--fm)}
+.m-val{font-size:1.85rem;font-weight:700;font-family:var(--fm);color:var(--text);line-height:1}
+.m-foot{display:flex;align-items:center;justify-content:space-between}
+.m-badge{font-size:.67rem;font-weight:600;padding:2px 8px;border-radius:10px}
+.badge-up{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-dn{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-nu{background:rgba(107,127,168,.15);color:var(--muted)}
+.m-ico{width:32px;height:32px;border-radius:8px;background:rgba(59,130,246,.1);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:.9rem}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:.85rem;margin-bottom:.85rem}
+.chart-wrap{position:relative;height:210px}
+
+/* TAB BUTTONS */
+.tab-group{display:flex;gap:3px}
+.tab-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:.67rem;color:var(--muted);cursor:pointer;font-family:var(--fm);transition:all .18s}
+.tab-btn:hover{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:var(--accent)}
+.tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* INFO GRIDS */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem}
+.hotspot-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.hotspot-row:last-child{border-bottom:none}
+.hs-left{display:flex;align-items:center;gap:9px;font-size:.82rem}
+.hs-left i{color:var(--muted);width:13px}
+
+/* BADGES */
+.badge{font-size:.65rem;font-weight:700;padding:2px 9px;border-radius:10px;font-family:var(--fm)}
+.badge.high{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.badge.medium{background:rgba(245,158,11,.15);color:var(--yellow);border:1px solid rgba(245,158,11,.25)}
+.badge.low{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column}
+.tl-item{display:grid;grid-template-columns:50px 15px 1fr;gap:11px;align-items:flex-start;padding-bottom:15px}
+.tl-item:last-child{padding-bottom:0}
+.tl-time{font-family:var(--fm);font-size:.67rem;color:var(--muted);text-align:right;padding-top:2px}
+.tl-spine{display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;position:relative}
+.tl-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:2px solid;border-color:inherit;opacity:.3}
+.tl-line{flex:1;width:2px;background:var(--border);margin-top:4px}
+.tl-item:last-child .tl-line{display:none}
+.tl-dot.moderate{background:var(--yellow);border-color:var(--yellow)}
+.tl-dot.high{background:var(--red);border-color:var(--red)}
+.tl-dot.severe{background:#a855f7;border-color:#a855f7}
+.tl-dot.clear{background:var(--green);border-color:var(--green)}
+.tl-label{font-size:.82rem;font-weight:500;padding-top:1px}
+.tl-sub{font-size:.67rem;color:var(--muted);margin-top:2px;font-family:var(--fm)}
+
+/* MAP */
+.map-bar{display:flex;gap:7px;margin-bottom:.9rem;flex-wrap:wrap}
+.map-btn{display:flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--muted);font-size:.78rem;font-weight:500;cursor:pointer;transition:all .18s;font-family:var(--fs)}
+.map-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.08)}
+.map-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.14)}
+.map-btn:active{transform:scale(.96)}
+.map-area{border-radius:var(--r);overflow:hidden;border:1px solid var(--border);height:430px;background:var(--panel);position:relative;margin-bottom:.85rem}
+.map-bg{position:absolute;inset:0;background:linear-gradient(135deg,#0a1628 0%,#0d1f3c 50%,#091220 100%)}
+.map-svg{position:absolute;inset:0;opacity:.1}
+.map-blob{position:absolute;border-radius:50%;pointer-events:none;transition:opacity .4s}
+.map-pin{position:absolute;border-radius:50%;animation:mapPulse 2s ease-in-out infinite;cursor:pointer;transition:transform .15s}
+.map-pin:hover{transform:scale(1.6)!important;animation:none}
+@keyframes mapPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.7}}
+.map-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1;text-align:center;font-family:var(--fm);pointer-events:none}
+.map-center .big{font-size:2.5rem;opacity:.11}
+.map-center p{color:var(--muted);font-size:.72rem;margin-top:4px}
+.map-tooltip{position:absolute;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:.72rem;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10;white-space:nowrap;font-family:var(--fm)}
+.map-tooltip.show{opacity:1}
+
+/* ANALYTICS KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:1rem}
+.kpi-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);padding:1.1rem;text-align:center;transition:border-color .2s,transform .2s;cursor:default}
+.kpi-card:hover{border-color:rgba(59,130,246,.35);transform:translateY(-2px)}
+.kpi-ico{width:40px;height:40px;border-radius:10px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.kpi-ico.blue{background:rgba(59,130,246,.15);color:var(--accent)}
+.kpi-ico.cyan{background:rgba(6,182,212,.15);color:var(--accent2)}
+.kpi-ico.violet{background:rgba(139,92,246,.15);color:var(--accent3)}
+.kpi-ico.green{background:rgba(16,185,129,.15);color:var(--green)}
+.kpi-num{font-family:var(--fm);font-size:1.45rem;font-weight:700;color:var(--text)}
+.kpi-lbl{font-size:.67rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+.an-charts{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:.85rem}
+
+/* INSIGHTS */
+.insight-row{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.insight-row:last-child{border-bottom:none}
+.ins-ico{width:28px;height:28px;border-radius:6px;background:rgba(59,130,246,.1);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0}
+.ins-txt{font-size:.8rem;line-height:1.55;color:var(--text)}
+
+/* HISTORICAL */
+.filter-row{display:flex;gap:7px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.f-select,.f-input{background:var(--panel);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 11px;font-size:.82rem;font-family:var(--fs);outline:none;transition:border-color .2s}
+.f-select:focus,.f-input:focus{border-color:var(--accent)}
+.f-select option{background:#0d1630}
+.export-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:.9rem}
+
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:.9rem}
+.s-group{margin-bottom:.85rem}
+.s-label{display:block;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:var(--fm)}
+.s-select,.s-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-size:.85rem;font-family:var(--fs);outline:none;transition:border-color .2s}
+.s-select:focus,.s-input:focus{border-color:var(--accent)}
+.s-select option{background:#0d1630}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.toggle-row:last-child{border-bottom:none}
+.t-left{font-size:.84rem}
+.toggle{width:38px;height:21px;background:var(--panel2);border-radius:11px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;width:15px;height:15px;border-radius:50%;background:white;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.toggle.on::after{left:20px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:8px;font-family:var(--fs);font-weight:600;cursor:pointer;transition:all .18s;padding:8px 15px;font-size:.82rem}
+.btn:active{transform:scale(.96)!important;opacity:.9}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#2563eb;transform:translateY(-1px)}
+.btn-success{background:linear-gradient(90deg,var(--green),#059669);color:#fff}
+.btn-success:hover{opacity:.9;transform:translateY(-1px)}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.22);color:var(--red)}
+.btn-danger:hover{background:rgba(239,68,68,.22)}
+
+/* INCIDENTS */
+.inc-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.inc-row:last-child{border-bottom:none}
+.inc-ico{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.inc-ico.red{background:rgba(239,68,68,.15);color:var(--red)}
+.inc-ico.yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.inc-info{flex:1}
+.inc-title{font-size:.82rem;font-weight:500}
+.inc-sub{font-size:.67rem;color:var(--muted);font-family:var(--fm)}
+
+/* LEGEND */
+.layer-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);gap:10px;font-size:.82rem}
+.layer-row:last-child{border-bottom:none}
+.l-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);z-index:1000;display:flex;align-items:center;justify-content:center;animation:mFadeIn .18s ease}
+@keyframes mFadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;width:min(480px,92vw);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.55);animation:mPopIn .28s cubic-bezier(.34,1.56,.64,1)}
+@keyframes mPopIn{from{opacity:0;transform:scale(.88) translateY(22px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-head{background:linear-gradient(90deg,rgba(59,130,246,.18),rgba(6,182,212,.09));border-bottom:1px solid var(--border);padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-size:.88rem;font-family:var(--fm);display:flex;align-items:center;gap:8px;color:var(--accent2)}
+.modal-close{background:rgba(255,255,255,.06);border:none;border-radius:6px;width:26px;height:26px;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .18s}
+.modal-close:hover{background:rgba(239,68,68,.18);color:var(--red)}
+.modal-body{padding:18px;max-height:70vh;overflow-y:auto}
+.modal-foot{border-top:1px solid var(--border);padding:12px 18px;display:flex;justify-content:flex-end;gap:8px}
+.m-row{display:flex;flex-direction:column;gap:3px;padding:9px 11px;background:rgba(255,255,255,.03);border-radius:8px;border-left:3px solid var(--accent);margin-bottom:9px}
+.m-row label{font-size:.62rem;font-family:var(--fm);color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.m-row span{font-size:.9rem;font-weight:600}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:2000;display:flex;flex-direction:column;gap:7px;align-items:center;pointer-events:none}
+.toast{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:9px 16px;font-size:.8rem;font-family:var(--fm);color:var(--text);display:flex;align-items:center;gap:8px;animation:toastIn .22s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast.success{border-color:rgba(16,185,129,.35);color:var(--green)}
+.toast.error{border-color:rgba(239,68,68,.35);color:var(--red)}
+.toast.info{border-color:rgba(59,130,246,.35);color:var(--accent)}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(10px)}}
+
+/* MODAL EXTRAS */
+.search-input-modal{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 13px;font-size:.88rem;font-family:var(--fs);outline:none;margin-bottom:10px}
+.search-input-modal:focus{border-color:var(--accent)}
+.s-result{padding:9px 11px;border-radius:7px;cursor:pointer;font-size:.83rem;transition:background .14s;display:flex;align-items:center;gap:9px;color:var(--muted)}
+.s-result:hover{background:var(--panel2);color:var(--text)}
+.s-result i{color:var(--accent);width:13px}
+.route-stop{display:flex;gap:9px;align-items:center;margin-bottom:8px}
+.r-ico{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.73rem;flex-shrink:0}
+.r-ico.start{background:rgba(16,185,129,.2);color:var(--green)}
+.r-ico.end{background:rgba(239,68,68,.2);color:var(--red)}
+.filter-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:4px 11px;border-radius:20px;border:1px solid var(--border);font-size:.7rem;font-family:var(--fm);color:var(--muted);cursor:pointer;transition:all .17s;user-select:none}
+.chip:hover,.chip.active{border-color:var(--accent);background:rgba(59,130,246,.12);color:var(--accent)}
+
+/* MOBILE */
+.mob-btn{display:none;position:fixed;bottom:18px;right:18px;width:46px;height:46px;border-radius:50%;background:var(--accent);border:none;color:white;font-size:1rem;cursor:pointer;z-index:300;box-shadow:0 4px 16px rgba(59,130,246,.45);align-items:center;justify-content:center}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}.an-charts{grid-template-columns:1fr}.info-grid{grid-template-columns:1fr}}
+@media(max-width:640px){.sidebar{position:fixed;height:100%;z-index:250;transform:translateX(-100%)}.sidebar.open{transform:translateX(0)}.main{padding:1rem}.header{padding:0 .9rem}.mob-btn{display:flex!important}.kpi-grid{grid-template-columns:1fr 1fr}.metrics-grid{grid-template-columns:1fr 1fr}.hdr-time{display:none}.map-btn{padding:5px 9px;font-size:.72rem}}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--panel2);border-radius:3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
 </head>
 <body>
-
 <div class="app">
-    <!-- HEADER -->
-    <header class="header">
-        <div class="logo">
-            <div class="logo-icon"><i class="fas fa-traffic-light"></i></div>
-            <h1>INTELLITRAFFIC</h1>
-        </div>
-        <div class="header-right">
-            <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-            <div class="header-time">
-                <span id="hTime">--:--</span>
-                <span style="margin:0 6px;color:var(--border)">|</span>
-                <span id="hDate" style="font-size:0.75rem"></span>
-            </div>
-            <div class="traffic-pill moderate" id="trafficPill">
-                <i class="fas fa-circle" style="font-size:7px"></i>
-                <span id="trafficLevelText">Moderate</span>
-            </div>
-        </div>
-    </header>
 
-    <div class="body">
-        <!-- SIDEBAR -->
-        <aside class="sidebar" id="sidebar">
-            <div class="sidebar-toggle-btn">
-                <button id="sidebarToggle" title="Toggle sidebar"><i class="fas fa-bars"></i></button>
-            </div>
-            <nav>
-                <div class="nav-item active" data-page="dashboard">
-                    <i class="fas fa-home"></i><span class="nav-label">Dashboard</span>
-                </div>
-                <div class="nav-item" data-page="map">
-                    <i class="fas fa-map-marked-alt"></i><span class="nav-label">Traffic Map</span>
-                </div>
-                <div class="nav-item" data-page="analytics">
-                    <i class="fas fa-chart-line"></i><span class="nav-label">Analytics</span>
-                </div>
-                <div class="nav-item" data-page="historical">
-                    <i class="fas fa-history"></i><span class="nav-label">Historical</span>
-                </div>
-                <div class="nav-item" data-page="settings">
-                    <i class="fas fa-cog"></i><span class="nav-label">Settings</span>
-                </div>
-            </nav>
-            <div class="sidebar-footer">
-                <div class="sys-title">System Status</div>
-                <div class="sys-row">
-                    <span class="sidebar-footer-text">Cameras</span>
-                    <div class="sys-dot"></div>
-                </div>
-                <div class="sys-row">
-                    <span class="sidebar-footer-text">AI Model</span>
-                    <div class="sys-dot"></div>
-                </div>
-                <div class="sys-row">
-                    <span class="sidebar-footer-text">Database</span>
-                    <div class="sys-dot"></div>
-                </div>
-            </div>
-        </aside>
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon"><i class="fas fa-traffic-light"></i></div>
+    <h1>INTELLITRAFFIC</h1>
+  </div>
+  <div class="hdr-r">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="hdr-time"><span id="hTime">--:--</span><span style="color:var(--border);margin:0 5px">|</span><span id="hDate"></span></div>
+    <div class="t-pill moderate" id="trafficPill"><i class="fas fa-circle" style="font-size:6px"></i><span id="tLevelTxt">Moderate</span></div>
+  </div>
+</header>
 
-        <!-- MAIN CONTENT -->
-        <main class="main">
+<div class="body">
 
-            <!-- ═══ DASHBOARD ═══ -->
-            <section class="page active" id="page-dashboard">
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-label">Total Vehicles</div>
-                        <div class="metric-val" id="m-vehicles">847</div>
-                        <div class="metric-footer">
-                            <span class="metric-badge badge-up" id="m-vch">↑ 12.4%</span>
-                            <div class="metric-icon-wrap"><i class="fas fa-car"></i></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Traffic Density</div>
-                        <div class="metric-val" id="m-density">62%</div>
-                        <div class="metric-footer">
-                            <span class="metric-badge badge-up" id="m-dch">↑ 8.1%</span>
-                            <div class="metric-icon-wrap"><i class="fas fa-road"></i></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">Avg Speed</div>
-                        <div class="metric-val" id="m-speed">54 km/h</div>
-                        <div class="metric-footer">
-                            <span class="metric-badge badge-down" id="m-sch">↓ 3.2%</span>
-                            <div class="metric-icon-wrap"><i class="fas fa-tachometer-alt"></i></div>
-                        </div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-label">AI Prediction</div>
-                        <div class="metric-val" id="m-pred" style="font-size:1.2rem;padding-top:6px">Stable</div>
-                        <div class="metric-footer">
-                            <span class="metric-badge badge-neutral">Next 30min</span>
-                            <div class="metric-icon-wrap"><i class="fas fa-brain"></i></div>
-                        </div>
-                    </div>
-                </div>
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-top"><button class="icon-btn" id="sbToggle"><i class="fas fa-bars"></i></button></div>
+  <nav>
+    <div class="nav-item active" data-page="dashboard"><i class="fas fa-house"></i><span class="nav-label">Dashboard</span></div>
+    <div class="nav-item" data-page="map"><i class="fas fa-map-marked-alt"></i><span class="nav-label">Traffic Map</span></div>
+    <div class="nav-item" data-page="analytics"><i class="fas fa-chart-line"></i><span class="nav-label">Analytics</span></div>
+    <div class="nav-item" data-page="historical"><i class="fas fa-clock-rotate-left"></i><span class="nav-label">Historical</span></div>
+    <div class="nav-item" data-page="settings"><i class="fas fa-gear"></i><span class="nav-label">Settings</span></div>
+  </nav>
+  <div class="sb-foot">
+    <div class="sys-title">System Status</div>
+    <div class="sys-row"><span class="sft">Cameras</span><div class="sys-dot"></div></div>
+    <div class="sys-row"><span class="sft">AI Model</span><div class="sys-dot"></div></div>
+    <div class="sys-row"><span class="sft">Database</span><div class="sys-dot"></div></div>
+  </div>
+</aside>
 
-                <div class="charts-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Vehicle Count</span>
-                            <div class="tab-group">
-                                <button class="tab-btn active">24H</button>
-                                <button class="tab-btn">7D</button>
-                                <button class="tab-btn">30D</button>
-                            </div>
-                        </div>
-                        <div class="chart-wrap"><canvas id="vehicleChart"></canvas></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">By Type</span>
-                            <div class="tab-group">
-                                <button class="tab-btn active">Now</button>
-                                <button class="tab-btn">Week</button>
-                            </div>
-                        </div>
-                        <div class="chart-wrap"><canvas id="densityChart"></canvas></div>
-                    </div>
-                </div>
+<!-- MAIN -->
+<main class="main">
 
-                <div class="card" style="margin-bottom:1rem">
-                    <div class="card-header">
-                        <span class="card-title">Weekly Pattern</span>
-                        <div class="tab-group">
-                            <button class="tab-btn active">All</button>
-                            <button class="tab-btn">Weekdays</button>
-                        </div>
-                    </div>
-                    <div class="chart-wrap"><canvas id="patternChart"></canvas></div>
-                </div>
-
-                <div class="info-grid">
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Traffic Hotspots</span></div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>Main St & 5th Ave</div>
-                            <span class="badge high">HIGH</span>
-                        </div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>Downtown Tunnel</div>
-                            <span class="badge medium">MED</span>
-                        </div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>River Bridge</div>
-                            <span class="badge low">LOW</span>
-                        </div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-location-dot"></i>North Bypass</div>
-                            <span class="badge low">LOW</span>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Predictions</span></div>
-                        <div class="timeline">
-                            <div class="tl-item">
-                                <div class="tl-time">Now</div>
-                                <div class="tl-spine"><div class="tl-dot moderate"></div><div class="tl-line"></div></div>
-                                <div><div class="tl-label">Moderate traffic</div><div class="tl-sublabel">62% density</div></div>
-                            </div>
-                            <div class="tl-item">
-                                <div class="tl-time">+30m</div>
-                                <div class="tl-spine"><div class="tl-dot high"></div><div class="tl-line"></div></div>
-                                <div><div class="tl-label">Peak hour starts</div><div class="tl-sublabel">78% density</div></div>
-                            </div>
-                            <div class="tl-item">
-                                <div class="tl-time">+1hr</div>
-                                <div class="tl-spine"><div class="tl-dot severe"></div><div class="tl-line"></div></div>
-                                <div><div class="tl-label">Severe congestion</div><div class="tl-sublabel">92% density</div></div>
-                            </div>
-                            <div class="tl-item">
-                                <div class="tl-time">+2hr</div>
-                                <div class="tl-spine"><div class="tl-dot clear"></div><div class="tl-line"></div></div>
-                                <div><div class="tl-label">Traffic easing</div><div class="tl-sublabel">45% density</div></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══ TRAFFIC MAP ═══ -->
-            <section class="page" id="page-map">
-                <div class="page-title"><i class="fas fa-map-marked-alt"></i>Live Traffic Map</div>
-                <div class="map-controls-bar">
-                    <button class="map-btn active" onclick="toggleMapBtn(this)"><i class="fas fa-layer-group"></i> Traffic Layers</button>
-                    <button class="map-btn" onclick="toggleMapBtn(this)"><i class="fas fa-search"></i> Search Location</button>
-                    <button class="map-btn" onclick="toggleMapBtn(this)"><i class="fas fa-route"></i> Plan Route</button>
-                    <button class="map-btn" onclick="toggleMapBtn(this)"><i class="fas fa-filter"></i> Filter Vehicles</button>
-                </div>
-                <div class="map-area">
-                    <div class="map-placeholder-ui" id="mapPlaceholder">
-                        <svg class="map-grid-svg" viewBox="0 0 800 480" xmlns="http://www.w3.org/2000/svg">
-                            <defs><pattern id="mg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0L0 0 0 40" fill="none" stroke="#3b82f6" stroke-width="0.5"/></pattern></defs>
-                            <rect width="800" height="480" fill="url(#mg)"/>
-                            <!-- Road lines -->
-                            <line x1="0" y1="240" x2="800" y2="240" stroke="#3b82f6" stroke-width="3" opacity="0.4"/>
-                            <line x1="400" y1="0" x2="400" y2="480" stroke="#3b82f6" stroke-width="3" opacity="0.4"/>
-                            <line x1="0" y1="120" x2="800" y2="120" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
-                            <line x1="0" y1="360" x2="800" y2="360" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
-                            <line x1="200" y1="0" x2="200" y2="480" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
-                            <line x1="600" y1="0" x2="600" y2="480" stroke="#3b82f6" stroke-width="1.5" opacity="0.2"/>
-                            <!-- Diagonal roads -->
-                            <line x1="0" y1="480" x2="400" y2="0" stroke="#06b6d4" stroke-width="1" opacity="0.15"/>
-                            <line x1="800" y1="480" x2="400" y2="0" stroke="#06b6d4" stroke-width="1" opacity="0.15"/>
-                        </svg>
-                        <!-- Traffic density blobs -->
-                        <div style="position:absolute;width:120px;height:80px;background:radial-gradient(circle,rgba(239,68,68,0.35),transparent);border-radius:50%;top:30%;left:20%"></div>
-                        <div style="position:absolute;width:90px;height:60px;background:radial-gradient(circle,rgba(245,158,11,0.3),transparent);border-radius:50%;top:55%;left:55%"></div>
-                        <div style="position:absolute;width:70px;height:50px;background:radial-gradient(circle,rgba(16,185,129,0.25),transparent);border-radius:50%;top:65%;left:30%"></div>
-                        <div style="position:absolute;width:60px;height:40px;background:radial-gradient(circle,rgba(239,68,68,0.3),transparent);border-radius:50%;top:25%;left:65%"></div>
-                        <!-- Pulsing location markers -->
-                        <div class="map-dot" style="width:14px;height:14px;background:#ef4444;top:33%;left:22%;box-shadow:0 0 0 6px rgba(239,68,68,0.2)"></div>
-                        <div class="map-dot" style="width:12px;height:12px;background:#f59e0b;top:58%;left:58%;box-shadow:0 0 0 5px rgba(245,158,11,0.2);animation-delay:0.5s"></div>
-                        <div class="map-dot" style="width:10px;height:10px;background:#10b981;top:67%;left:32%;box-shadow:0 0 0 4px rgba(16,185,129,0.2);animation-delay:1s"></div>
-                        <div class="map-dot" style="width:12px;height:12px;background:#ef4444;top:27%;left:67%;box-shadow:0 0 0 5px rgba(239,68,68,0.2);animation-delay:0.3s"></div>
-                        <div class="map-center-label">
-                            <div class="big"><i class="fas fa-map-marked-alt"></i></div>
-                            <p>Live Traffic Intelligence Map</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="info-grid">
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Legend</span></div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-circle" style="color:var(--red);font-size:10px"></i>Heavy Traffic (&gt;80% density)</div>
-                        </div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-circle" style="color:var(--yellow);font-size:10px"></i>Moderate Traffic (50–80%)</div>
-                        </div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-circle" style="color:var(--green);font-size:10px"></i>Light Traffic (&lt;50%)</div>
-                        </div>
-                        <div class="hotspot-row">
-                            <div class="hotspot-left"><i class="fas fa-triangle-exclamation" style="color:#a855f7;font-size:10px"></i>Active Incident</div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Live Incidents</span></div>
-                        <div class="incident-row">
-                            <div class="incident-icon red"><i class="fas fa-car-burst"></i></div>
-                            <div class="incident-info">
-                                <div class="incident-title">Accident — Highway N-12</div>
-                                <div class="incident-sub">15 min ago · 2 lanes blocked</div>
-                            </div>
-                            <span class="badge high">ACTIVE</span>
-                        </div>
-                        <div class="incident-row">
-                            <div class="incident-icon yellow"><i class="fas fa-hard-hat"></i></div>
-                            <div class="incident-info">
-                                <div class="incident-title">Road Work — 5th Ave</div>
-                                <div class="incident-sub">Ongoing · Right lane closed</div>
-                            </div>
-                            <span class="badge medium">ONGOING</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══ ANALYTICS ═══ -->
-            <section class="page" id="page-analytics">
-                <div class="page-title"><i class="fas fa-chart-line"></i>Traffic Analytics</div>
-                <div class="analytics-kpi-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-icon blue"><i class="fas fa-car"></i></div>
-                        <div class="kpi-num">12,847</div>
-                        <div class="kpi-label">Vehicles Today</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-icon cyan"><i class="fas fa-clock"></i></div>
-                        <div class="kpi-num">7–9 AM</div>
-                        <div class="kpi-label">Peak Hours</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-icon violet"><i class="fas fa-percent"></i></div>
-                        <div class="kpi-num">+25%</div>
-                        <div class="kpi-label">Friday Volume</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-icon green"><i class="fas fa-truck"></i></div>
-                        <div class="kpi-num">40%</div>
-                        <div class="kpi-label">Commercial Share</div>
-                    </div>
-                </div>
-
-                <div class="analytics-charts">
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Peak Hours</span>
-                            <div class="tab-group">
-                                <button class="tab-btn active">Today</button>
-                                <button class="tab-btn">Week</button>
-                            </div>
-                        </div>
-                        <div class="chart-wrap"><canvas id="peakChart"></canvas></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Vehicle Mix</span>
-                            <div class="tab-group">
-                                <button class="tab-btn active">Now</button>
-                                <button class="tab-btn">Avg</button>
-                            </div>
-                        </div>
-                        <div class="chart-wrap"><canvas id="mixChart"></canvas></div>
-                    </div>
-                </div>
-
-                <div class="analytics-charts">
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Weekly Trend</span>
-                        </div>
-                        <div class="chart-wrap"><canvas id="weeklyChart"></canvas></div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">Key Insights</span>
-                        </div>
-                        <div class="insight-row">
-                            <div class="insight-icon"><i class="fas fa-bolt"></i></div>
-                            <div class="insight-text">Peak traffic occurs between 7–9 AM and 5–7 PM on weekdays, coinciding with shift changes.</div>
-                        </div>
-                        <div class="insight-row">
-                            <div class="insight-icon"><i class="fas fa-calendar"></i></div>
-                            <div class="insight-text">25% increase in vehicle volume on Fridays. Plan signal adjustments from 3 PM onwards.</div>
-                        </div>
-                        <div class="insight-row">
-                            <div class="insight-icon"><i class="fas fa-truck"></i></div>
-                            <div class="insight-text">Commercial vehicles contribute 40% of congestion during peak hours despite being only 15% of volume.</div>
-                        </div>
-                        <div class="insight-row">
-                            <div class="insight-icon"><i class="fas fa-moon"></i></div>
-                            <div class="insight-text">Weekend nights (10 PM–2 AM) show 35% higher speeds — optimal window for road maintenance.</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══ HISTORICAL ═══ -->
-            <section class="page" id="page-historical">
-                <div class="page-title"><i class="fas fa-history"></i>Historical Data</div>
-                <div class="filter-row">
-                    <select class="setting-select" style="width:auto">
-                        <option>Last 7 Days</option>
-                        <option>Last 30 Days</option>
-                        <option>Last 3 Months</option>
-                        <option>Custom Range</option>
-                    </select>
-                    <input type="date" class="setting-input" style="width:auto" value="2024-10-01">
-                    <input type="date" class="setting-input" style="width:auto" value="2024-10-07">
-                    <button class="btn-primary"><i class="fas fa-filter"></i> Apply Filter</button>
-                </div>
-                <div class="card" style="margin-bottom:1rem">
-                    <div class="card-header">
-                        <span class="card-title">Traffic Trends</span>
-                        <div class="tab-group">
-                            <button class="tab-btn active">Daily</button>
-                            <button class="tab-btn">Weekly</button>
-                            <button class="tab-btn">Monthly</button>
-                        </div>
-                    </div>
-                    <div class="chart-wrap" style="height:280px"><canvas id="histChart"></canvas></div>
-                </div>
-                <div class="card">
-                    <div class="card-header"><span class="card-title">Export Data</span></div>
-                    <div class="export-row">
-                        <button class="btn-outline"><i class="fas fa-file-csv"></i> Export CSV</button>
-                        <button class="btn-outline"><i class="fas fa-file-pdf"></i> Export PDF</button>
-                        <button class="btn-primary"><i class="fas fa-chart-bar"></i> Generate Report</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ═══ SETTINGS ═══ -->
-            <section class="page" id="page-settings">
-                <div class="page-title"><i class="fas fa-cog"></i>System Settings</div>
-                <div class="settings-grid">
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">General</span></div>
-                        <div class="setting-group">
-                            <label class="setting-label">Measurement Units</label>
-                            <select class="setting-select">
-                                <option>Metric (km/h)</option>
-                                <option>Imperial (mph)</option>
-                            </select>
-                        </div>
-                        <div class="setting-group">
-                            <label class="setting-label">Color Theme</label>
-                            <select class="setting-select">
-                                <option>Dark Mode (Default)</option>
-                                <option>Light Mode</option>
-                                <option>High Contrast</option>
-                            </select>
-                        </div>
-                        <div class="setting-group">
-                            <label class="setting-label">Data Refresh Rate</label>
-                            <select class="setting-select">
-                                <option>30 seconds</option>
-                                <option>1 minute</option>
-                                <option>5 minutes</option>
-                            </select>
-                        </div>
-                        <button class="btn-save"><i class="fas fa-save"></i> Save Changes</button>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Alerts</span></div>
-                        <div class="toggle-row">
-                            <span class="toggle-left">Traffic Congestion Alerts</span>
-                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-                        </div>
-                        <div class="toggle-row">
-                            <span class="toggle-left">Incident Reports</span>
-                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-                        </div>
-                        <div class="toggle-row">
-                            <span class="toggle-left">Predictive Alerts</span>
-                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-                        </div>
-                        <div class="toggle-row">
-                            <span class="toggle-left">System Notifications</span>
-                            <div class="toggle" onclick="this.classList.toggle('on')"></div>
-                        </div>
-                        <div class="setting-group" style="margin-top:1rem">
-                            <label class="setting-label">Alert Sound</label>
-                            <select class="setting-select">
-                                <option>Default</option>
-                                <option>Chime</option>
-                                <option>Beep</option>
-                                <option>None</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-header"><span class="card-title">Camera Management</span></div>
-                        <div class="setting-group">
-                            <label class="setting-label">Default Camera View</label>
-                            <select class="setting-select">
-                                <option>Main Intersection</option>
-                                <option>Highway Entrance</option>
-                                <option>Downtown</option>
-                                <option>Bridge View</option>
-                            </select>
-                        </div>
-                        <div class="toggle-row">
-                            <span class="toggle-left">Auto-switch on incidents</span>
-                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-                        </div>
-                        <div class="toggle-row">
-                            <span class="toggle-left">Record during high traffic</span>
-                            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
-                        </div>
-                        <div class="setting-group" style="margin-top:1rem">
-                            <label class="setting-label">Data Retention</label>
-                            <select class="setting-select">
-                                <option>30 days</option>
-                                <option>60 days</option>
-                                <option>90 days</option>
-                                <option>1 year</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-        </main>
+<!-- ═══════ DASHBOARD ═══════ -->
+<section class="page active" id="page-dashboard">
+  <div class="metrics-grid">
+    <div class="metric-card"><div class="m-label">Total Vehicles</div><div class="m-val" id="mVehicles">847</div><div class="m-foot"><span class="m-badge badge-up" id="mVch">↑ 12.4%</span><div class="m-ico"><i class="fas fa-car"></i></div></div></div>
+    <div class="metric-card"><div class="m-label">Traffic Density</div><div class="m-val" id="mDensity">62%</div><div class="m-foot"><span class="m-badge badge-up" id="mDch">↑ 8.1%</span><div class="m-ico"><i class="fas fa-road"></i></div></div></div>
+    <div class="metric-card"><div class="m-label">Avg Speed</div><div class="m-val" id="mSpeed">54 km/h</div><div class="m-foot"><span class="m-badge badge-dn">↓ 3.2%</span><div class="m-ico"><i class="fas fa-gauge-high"></i></div></div></div>
+    <div class="metric-card"><div class="m-label">AI Prediction</div><div class="m-val" id="mPred" style="font-size:1.05rem;padding-top:10px">Stable</div><div class="m-foot"><span class="m-badge badge-nu">Next 30min</span><div class="m-ico"><i class="fas fa-brain"></i></div></div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="card"><div class="card-hd"><span class="card-title">Vehicle Count</span><div class="tab-group" data-chart="vehicleChart" data-type="vehicle"><button class="tab-btn active" data-period="24h">24H</button><button class="tab-btn" data-period="7d">7D</button><button class="tab-btn" data-period="30d">30D</button></div></div><div class="chart-wrap"><canvas id="vehicleChart"></canvas></div></div>
+    <div class="card"><div class="card-hd"><span class="card-title">By Type</span><div class="tab-group" data-chart="densityChart" data-type="density"><button class="tab-btn active" data-period="now">Now</button><button class="tab-btn" data-period="week">Week</button></div></div><div class="chart-wrap"><canvas id="densityChart"></canvas></div></div>
+  </div>
+  <div class="card" style="margin-bottom:.85rem">
+    <div class="card-hd"><span class="card-title">Weekly Pattern</span><div class="tab-group" data-chart="patternChart" data-type="pattern"><button class="tab-btn active" data-period="all">All</button><button class="tab-btn" data-period="weekdays">Weekdays</button></div></div>
+    <div class="chart-wrap"><canvas id="patternChart"></canvas></div>
+  </div>
+  <div class="info-grid">
+    <div class="card"><div class="card-hd"><span class="card-title">Traffic Hotspots</span></div>
+      <div class="hotspot-row"><div class="hs-left"><i class="fas fa-location-dot"></i>Main St &amp; 5th Ave</div><span class="badge high">HIGH</span></div>
+      <div class="hotspot-row"><div class="hs-left"><i class="fas fa-location-dot"></i>Downtown Tunnel</div><span class="badge medium">MED</span></div>
+      <div class="hotspot-row"><div class="hs-left"><i class="fas fa-location-dot"></i>River Bridge</div><span class="badge low">LOW</span></div>
+      <div class="hotspot-row"><div class="hs-left"><i class="fas fa-location-dot"></i>North Bypass</div><span class="badge low">LOW</span></div>
     </div>
-</div>
+    <div class="card"><div class="card-hd"><span class="card-title">Predictions</span></div>
+      <div class="timeline">
+        <div class="tl-item"><div class="tl-time">Now</div><div class="tl-spine"><div class="tl-dot moderate"></div><div class="tl-line"></div></div><div><div class="tl-label">Moderate traffic</div><div class="tl-sub">62% density</div></div></div>
+        <div class="tl-item"><div class="tl-time">+30m</div><div class="tl-spine"><div class="tl-dot high"></div><div class="tl-line"></div></div><div><div class="tl-label">Peak hour starts</div><div class="tl-sub">78% density</div></div></div>
+        <div class="tl-item"><div class="tl-time">+1hr</div><div class="tl-spine"><div class="tl-dot severe"></div><div class="tl-line"></div></div><div><div class="tl-label">Severe congestion</div><div class="tl-sub">92% density</div></div></div>
+        <div class="tl-item"><div class="tl-time">+2hr</div><div class="tl-spine"><div class="tl-dot clear"></div></div><div><div class="tl-label">Traffic easing</div><div class="tl-sub">45% density</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-<!-- Mobile toggle -->
-<button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+<!-- ═══════ TRAFFIC MAP ═══════ -->
+<section class="page" id="page-map">
+  <div class="pg-title"><i class="fas fa-map-marked-alt"></i>Live Traffic Map</div>
+  <div class="map-bar">
+    <button class="map-btn active" id="btnLayers"><i class="fas fa-layer-group"></i> Traffic Layers</button>
+    <button class="map-btn" id="btnSearch"><i class="fas fa-magnifying-glass"></i> Search Location</button>
+    <button class="map-btn" id="btnRoute"><i class="fas fa-route"></i> Plan Route</button>
+    <button class="map-btn" id="btnFilter"><i class="fas fa-sliders"></i> Filter Vehicles</button>
+    <button class="map-btn" id="btnRefreshMap"><i class="fas fa-arrows-rotate"></i> Refresh</button>
+  </div>
+  <div class="map-area" id="mapArea">
+    <div class="map-bg" id="mapBg">
+      <svg class="map-svg" viewBox="0 0 800 430" xmlns="http://www.w3.org/2000/svg">
+        <defs><pattern id="mg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0L0 0 0 40" fill="none" stroke="#3b82f6" stroke-width=".6"/></pattern></defs>
+        <rect width="800" height="430" fill="url(#mg)"/>
+        <line x1="0" y1="215" x2="800" y2="215" stroke="#3b82f6" stroke-width="3" opacity=".45"/>
+        <line x1="400" y1="0" x2="400" y2="430" stroke="#3b82f6" stroke-width="3" opacity=".45"/>
+        <line x1="0" y1="107" x2="800" y2="107" stroke="#3b82f6" stroke-width="1.5" opacity=".2"/>
+        <line x1="0" y1="322" x2="800" y2="322" stroke="#3b82f6" stroke-width="1.5" opacity=".2"/>
+        <line x1="200" y1="0" x2="200" y2="430" stroke="#3b82f6" stroke-width="1.5" opacity=".2"/>
+        <line x1="600" y1="0" x2="600" y2="430" stroke="#3b82f6" stroke-width="1.5" opacity=".2"/>
+        <line x1="0" y1="430" x2="400" y2="0" stroke="#06b6d4" stroke-width="1" opacity=".12"/>
+        <line x1="800" y1="430" x2="400" y2="0" stroke="#06b6d4" stroke-width="1" opacity=".12"/>
+      </svg>
+      <div class="map-blob" id="blob1" style="width:130px;height:90px;background:radial-gradient(circle,rgba(239,68,68,.38),transparent);top:26%;left:17%"></div>
+      <div class="map-blob" id="blob2" style="width:95px;height:65px;background:radial-gradient(circle,rgba(245,158,11,.32),transparent);top:53%;left:54%"></div>
+      <div class="map-blob" id="blob3" style="width:75px;height:55px;background:radial-gradient(circle,rgba(16,185,129,.28),transparent);top:63%;left:27%"></div>
+      <div class="map-blob" id="blob4" style="width:65px;height:45px;background:radial-gradient(circle,rgba(239,68,68,.33),transparent);top:21%;left:63%"></div>
+      <div class="map-pin" id="pin1" style="width:13px;height:13px;background:#ef4444;top:29%;left:20%;box-shadow:0 0 0 6px rgba(239,68,68,.2)" data-loc="Main St & 5th Ave" data-status="HIGH" data-density="88%"></div>
+      <div class="map-pin" id="pin2" style="width:11px;height:11px;background:#f59e0b;top:55%;left:56%;box-shadow:0 0 0 5px rgba(245,158,11,.2);animation-delay:.5s" data-loc="Downtown Tunnel" data-status="MEDIUM" data-density="64%"></div>
+      <div class="map-pin" id="pin3" style="width:10px;height:10px;background:#10b981;top:65%;left:29%;box-shadow:0 0 0 4px rgba(16,185,129,.2);animation-delay:1s" data-loc="River Bridge" data-status="LOW" data-density="31%"></div>
+      <div class="map-pin" id="pin4" style="width:11px;height:11px;background:#ef4444;top:23%;left:65%;box-shadow:0 0 0 5px rgba(239,68,68,.2);animation-delay:.3s" data-loc="North Bypass" data-status="HIGH" data-density="82%"></div>
+      <div class="map-center"><div class="big"><i class="fas fa-map-marked-alt"></i></div><p>Live Traffic Intelligence Map</p></div>
+      <div class="map-tooltip" id="mapTooltip"></div>
+    </div>
+  </div>
+  <div class="info-grid">
+    <div class="card"><div class="card-hd"><span class="card-title">Legend</span></div>
+      <div class="layer-row"><div class="l-dot" style="background:var(--red)"></div>Heavy Traffic (&gt;80%)</div>
+      <div class="layer-row"><div class="l-dot" style="background:var(--yellow)"></div>Moderate Traffic (50–80%)</div>
+      <div class="layer-row"><div class="l-dot" style="background:var(--green)"></div>Light Traffic (&lt;50%)</div>
+      <div class="layer-row"><div class="l-dot" style="background:#a855f7"></div>Active Incident</div>
+    </div>
+    <div class="card"><div class="card-hd"><span class="card-title">Live Incidents</span></div>
+      <div class="inc-row"><div class="inc-ico red"><i class="fas fa-car-burst"></i></div><div class="inc-info"><div class="inc-title">Accident — Highway N-12</div><div class="inc-sub">15 min ago · 2 lanes blocked</div></div><span class="badge high">ACTIVE</span></div>
+      <div class="inc-row"><div class="inc-ico yellow"><i class="fas fa-hard-hat"></i></div><div class="inc-info"><div class="inc-title">Road Work — 5th Ave</div><div class="inc-sub">Ongoing · Right lane closed</div></div><span class="badge medium">ONGOING</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ ANALYTICS ═══════ -->
+<section class="page" id="page-analytics">
+  <div class="pg-title"><i class="fas fa-chart-line"></i>Traffic Analytics</div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-ico blue"><i class="fas fa-car"></i></div><div class="kpi-num">12,847</div><div class="kpi-lbl">Vehicles Today</div></div>
+    <div class="kpi-card"><div class="kpi-ico cyan"><i class="fas fa-clock"></i></div><div class="kpi-num">7–9 AM</div><div class="kpi-lbl">Peak Hours</div></div>
+    <div class="kpi-card"><div class="kpi-ico violet"><i class="fas fa-percent"></i></div><div class="kpi-num">+25%</div><div class="kpi-lbl">Friday Volume</div></div>
+    <div class="kpi-card"><div class="kpi-ico green"><i class="fas fa-truck"></i></div><div class="kpi-num">40%</div><div class="kpi-lbl">Commercial Share</div></div>
+  </div>
+  <div class="an-charts">
+    <div class="card"><div class="card-hd"><span class="card-title">Peak Hours</span><div class="tab-group" data-chart="peakChart" data-type="peak"><button class="tab-btn active" data-period="today">Today</button><button class="tab-btn" data-period="week">Week</button></div></div><div class="chart-wrap"><canvas id="peakChart"></canvas></div></div>
+    <div class="card"><div class="card-hd"><span class="card-title">Vehicle Mix</span><div class="tab-group" data-chart="mixChart" data-type="mix"><button class="tab-btn active" data-period="now">Now</button><button class="tab-btn" data-period="avg">Avg</button></div></div><div class="chart-wrap"><canvas id="mixChart"></canvas></div></div>
+  </div>
+  <div class="an-charts">
+    <div class="card"><div class="card-hd"><span class="card-title">Weekly Trend</span><div class="tab-group" data-chart="weeklyChart" data-type="weekly"><button class="tab-btn active" data-period="this">This Week</button><button class="tab-btn" data-period="last">Last Week</button></div></div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>
+    <div class="card"><div class="card-hd"><span class="card-title">Key Insights</span></div>
+      <div class="insight-row"><div class="ins-ico"><i class="fas fa-bolt"></i></div><div class="ins-txt">Peak traffic 7–9 AM & 5–7 PM weekdays. Signal cycles auto-adjusted.</div></div>
+      <div class="insight-row"><div class="ins-ico"><i class="fas fa-calendar"></i></div><div class="ins-txt">25% volume increase on Fridays. Green time extended pre-emptively from 3 PM.</div></div>
+      <div class="insight-row"><div class="ins-ico"><i class="fas fa-truck"></i></div><div class="ins-txt">Commercial vehicles: 15% of volume but 40% of peak congestion.</div></div>
+      <div class="insight-row"><div class="ins-ico"><i class="fas fa-moon"></i></div><div class="ins-txt">Weekend nights (10 PM–2 AM) show 35% higher speeds — best window for maintenance.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ HISTORICAL ═══════ -->
+<section class="page" id="page-historical">
+  <div class="pg-title"><i class="fas fa-clock-rotate-left"></i>Historical Data</div>
+  <div class="filter-row">
+    <select class="f-select" id="histRange"><option value="7">Last 7 Days</option><option value="30">Last 30 Days</option><option value="90">Last 3 Months</option><option value="custom">Custom Range</option></select>
+    <input type="date" class="f-input" id="histFrom" value="2024-10-01">
+    <input type="date" class="f-input" id="histTo" value="2024-10-07">
+    <button class="btn btn-primary" id="btnApplyFilter"><i class="fas fa-filter"></i> Apply Filter</button>
+    <button class="btn btn-outline" id="btnResetFilter"><i class="fas fa-rotate-left"></i> Reset</button>
+  </div>
+  <div class="card" style="margin-bottom:.85rem">
+    <div class="card-hd"><span class="card-title">Traffic Trends</span><div class="tab-group" data-chart="histChart" data-type="hist"><button class="tab-btn active" data-period="daily">Daily</button><button class="tab-btn" data-period="weekly">Weekly</button><button class="tab-btn" data-period="monthly">Monthly</button></div></div>
+    <div class="chart-wrap" style="height:260px"><canvas id="histChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span class="card-title">Export Data</span></div>
+    <div class="export-row">
+      <button class="btn btn-outline" id="btnCSV"><i class="fas fa-file-csv"></i> Export CSV</button>
+      <button class="btn btn-outline" id="btnPDF"><i class="fas fa-file-pdf"></i> Export PDF</button>
+      <button class="btn btn-primary" id="btnReport"><i class="fas fa-chart-bar"></i> Generate Report</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SETTINGS ═══════ -->
+<section class="page" id="page-settings">
+  <div class="pg-title"><i class="fas fa-gear"></i>System Settings</div>
+  <div class="settings-grid">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">General</span></div>
+      <div class="s-group"><label class="s-label">Measurement Units</label><select class="s-select"><option>Metric (km/h)</option><option>Imperial (mph)</option></select></div>
+      <div class="s-group"><label class="s-label">Color Theme</label><select class="s-select"><option>Dark Mode</option><option>Light Mode</option><option>High Contrast</option></select></div>
+      <div class="s-group"><label class="s-label">Data Refresh Rate</label><select class="s-select" id="refreshRate"><option value="30000">30 seconds</option><option value="60000">1 minute</option><option value="300000">5 minutes</option></select></div>
+      <button class="btn btn-success" id="btnSaveGeneral" style="margin-top:.5rem"><i class="fas fa-floppy-disk"></i> Save Changes</button>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Alert Preferences</span></div>
+      <div class="toggle-row"><span class="t-left">Congestion Alerts</span><div class="toggle on" data-pref="congestion"></div></div>
+      <div class="toggle-row"><span class="t-left">Incident Reports</span><div class="toggle on" data-pref="incidents"></div></div>
+      <div class="toggle-row"><span class="t-left">Predictive Alerts</span><div class="toggle on" data-pref="predictive"></div></div>
+      <div class="toggle-row"><span class="t-left">System Notifications</span><div class="toggle" data-pref="system"></div></div>
+      <div class="s-group" style="margin-top:.85rem"><label class="s-label">Alert Sound</label><select class="s-select"><option>Default</option><option>Chime</option><option>Beep</option><option>None</option></select></div>
+      <button class="btn btn-success" id="btnSaveAlerts" style="margin-top:.5rem"><i class="fas fa-floppy-disk"></i> Save Alerts</button>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Camera Management</span></div>
+      <div class="s-group"><label class="s-label">Default Camera View</label><select class="s-select"><option>Main Intersection</option><option>Highway Entrance</option><option>Downtown</option><option>Bridge View</option></select></div>
+      <div class="toggle-row"><span class="t-left">Auto-switch on incidents</span><div class="toggle on" data-pref="autoswitch"></div></div>
+      <div class="toggle-row"><span class="t-left">Record during high traffic</span><div class="toggle on" data-pref="record"></div></div>
+      <div class="s-group" style="margin-top:.85rem"><label class="s-label">Data Retention</label><select class="s-select"><option>30 days</option><option>60 days</option><option>90 days</option><option>1 year</option></select></div>
+      <div style="display:flex;gap:7px;margin-top:.5rem;flex-wrap:wrap">
+        <button class="btn btn-success" id="btnSaveCam"><i class="fas fa-floppy-disk"></i> Save</button>
+        <button class="btn btn-danger" id="btnClearCache"><i class="fas fa-trash-can"></i> Clear Cache</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main></div></div>
+<button class="mob-btn" id="mobBtn"><i class="fas fa-bars"></i></button>
+<div class="toast-wrap" id="toastWrap"></div>
 
 <script>
-// ── CHART DEFAULTS ──
-Chart.defaults.color = '#6b7fa8';
-Chart.defaults.font.family = "'DM Sans', sans-serif";
-Chart.defaults.font.size = 12;
-
-const palette = {
-    blue: 'rgba(59,130,246,',
-    cyan: 'rgba(6,182,212,',
-    violet: 'rgba(139,92,246,',
-    green: 'rgba(16,185,129,',
-    yellow: 'rgba(245,158,11,',
-    red: 'rgba(239,68,68,'
+/* ═══ CHART DATA ═══ */
+const CD = {
+  vehicle:{'24h':{l:['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00'],d:[120,80,350,420,380,450,600,320]},'7d':{l:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],d:[3200,4100,3800,4300,5100,2900,2400]},'30d':{l:['W1','W2','W3','W4'],d:[21000,24500,22800,26100]}},
+  density:{'now':{l:['Cars','Trucks','Buses','Motos'],d:[65,20,10,5]},'week':{l:['Cars','Trucks','Buses','Motos'],d:[60,25,8,7]}},
+  pattern:{'all':{l:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],d:[2,3,2,3,3,1,1]},'weekdays':{l:['Mon','Tue','Wed','Thu','Fri'],d:[2,3,2,3,3]}},
+  peak:{'today':{l:['6AM','9AM','12PM','3PM','6PM','9PM'],d:[350,600,450,500,750,300]},'week':{l:['6AM','9AM','12PM','3PM','6PM','9PM'],d:[310,580,430,480,720,280]}},
+  mix:{'now':{l:['Cars','Trucks','Motorcycles','Buses'],d:[65,15,12,8]},'avg':{l:['Cars','Trucks','Motorcycles','Buses'],d:[60,18,14,8]}},
+  weekly:{'this':{l:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],d:[820,940,880,960,1100,650,580]},'last':{l:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],d:[760,900,820,900,1050,600,540]}},
+  hist:{'daily':{l:['Oct 1','Oct 2','Oct 3','Oct 4','Oct 5','Oct 6','Oct 7'],d:[980,1050,920,1100,1200,750,680]},'weekly':{l:['W36','W37','W38','W39','W40'],d:[6200,7100,6800,7400,7900]},'monthly':{l:['Jul','Aug','Sep','Oct'],d:[28000,31000,29500,33000]}}
 };
 
-function makeGradient(ctx, color1, color2) {
-    const g = ctx.createLinearGradient(0, 0, 0, 240);
-    g.addColorStop(0, color1);
-    g.addColorStop(1, color2);
-    return g;
+Chart.defaults.color='#6b7fa8';
+Chart.defaults.font.family="'DM Sans',sans-serif";
+Chart.defaults.font.size=11;
+
+const CR={};
+
+function G(ctx,c1,c2,h=220){const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;}
+
+function mkLine(id,labels,data,color,fill){
+  const ctx=document.getElementById(id).getContext('2d');
+  const bg=G(ctx,fill||color.replace('rgb','rgba').replace(')',',0.28)'),color.replace('rgb','rgba').replace(')',',0)'));
+  const ch=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:color,backgroundColor:bg,borderWidth:2.2,tension:.4,fill:true,pointRadius:4,pointBackgroundColor:color,pointBorderColor:'#060c1a',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7fa8'}},x:{grid:{display:false},ticks:{color:'#6b7fa8'}}}}});
+  CR[id]=ch;return ch;
 }
 
-// ── NAVIGATION ──
-const navItems = document.querySelectorAll('.nav-item');
-const pages = document.querySelectorAll('.page');
+function mkBar(id,labels,data,colors){
+  const ctx=document.getElementById(id).getContext('2d');
+  const ch=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data,backgroundColor:colors||'rgba(59,130,246,.82)',borderRadius:5,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7fa8'}},x:{grid:{display:false},ticks:{color:'#6b7fa8'}}}}});
+  CR[id]=ch;return ch;
+}
 
-navItems.forEach(item => {
-    item.addEventListener('click', () => {
-        navItems.forEach(n => n.classList.remove('active'));
-        item.classList.add('active');
-        const pageId = 'page-' + item.dataset.page;
-        pages.forEach(p => p.classList.remove('active'));
-        document.getElementById(pageId).classList.add('active');
-        // Close mobile sidebar
-        if (window.innerWidth <= 640) {
-            document.getElementById('sidebar').classList.remove('open');
-        }
+function upChart(id,labels,data){
+  const ch=CR[id];if(!ch)return;
+  ch.data.labels=labels;ch.data.datasets[0].data=data;ch.update('active');
+}
+
+function initCharts(){
+  mkLine('vehicleChart',CD.vehicle['24h'].l,CD.vehicle['24h'].d,'#3b82f6','rgba(59,130,246,.28)');
+  mkBar('densityChart',CD.density['now'].l,CD.density['now'].d,['rgba(59,130,246,.85)','rgba(16,185,129,.85)','rgba(245,158,11,.85)','rgba(139,92,246,.85)']);
+
+  /* Pattern chart with color-coded points */
+  const pCtx=document.getElementById('patternChart').getContext('2d');
+  const pG=G(pCtx,'rgba(6,182,212,.25)','rgba(6,182,212,0)');
+  CR['patternChart']=new Chart(pCtx,{type:'line',data:{labels:CD.pattern['all'].l,datasets:[{data:CD.pattern['all'].d,borderColor:'#06b6d4',backgroundColor:pG,borderWidth:2.2,tension:.4,fill:true,pointRadius:6,pointBackgroundColor:c=>{const v=c.parsed?.y;return v===1?'#10b981':v===2?'#f59e0b':'#ef4444';},pointBorderColor:'#060c1a',pointBorderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const v=c.parsed.y;return v===1?'Low':v===2?'Medium':'High';}}}},scales:{y:{min:0,max:4,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7fa8',stepSize:1,callback:v=>v===1?'Low':v===2?'Med':v===3?'High':''}},x:{grid:{display:false},ticks:{color:'#6b7fa8'}}}}});
+
+  /* Peak hours color-coded */
+  const phCtx=document.getElementById('peakChart').getContext('2d');
+  CR['peakChart']=new Chart(phCtx,{type:'bar',data:{labels:CD.peak['today'].l,datasets:[{data:CD.peak['today'].d,backgroundColor:ctx=>{const v=ctx.parsed?.y||0;return v>600?'rgba(239,68,68,.85)':v>450?'rgba(245,158,11,.85)':'rgba(59,130,246,.85)';},borderRadius:5,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7fa8'}},x:{grid:{display:false},ticks:{color:'#6b7fa8'}}}}});
+
+  /* Doughnut */
+  const mCtx=document.getElementById('mixChart').getContext('2d');
+  CR['mixChart']=new Chart(mCtx,{type:'doughnut',data:{labels:CD.mix['now'].l,datasets:[{data:CD.mix['now'].d,backgroundColor:['#3b82f6','#06b6d4','#8b5cf6','#10b981'],borderColor:'#0d1630',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#6b7fa8',padding:12,usePointStyle:true,pointStyleWidth:8}}}}});
+
+  /* Weekly two-line */
+  const wCtx=document.getElementById('weeklyChart').getContext('2d');
+  const wG=G(wCtx,'rgba(139,92,246,.25)','rgba(139,92,246,0)');
+  CR['weeklyChart']=new Chart(wCtx,{type:'line',data:{labels:CD.weekly['this'].l,datasets:[{label:'Selected',data:CD.weekly['this'].d,borderColor:'#8b5cf6',backgroundColor:wG,borderWidth:2.2,tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#8b5cf6',pointBorderColor:'#060c1a',pointBorderWidth:2},{label:'Compare',data:CD.weekly['last'].d,borderColor:'rgba(107,127,168,.4)',borderWidth:1.5,tension:.4,borderDash:[5,5],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b7fa8',padding:12,usePointStyle:true}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6b7fa8'}},x:{grid:{display:false},ticks:{color:'#6b7fa8'}}}}});
+
+  mkLine('histChart',CD.hist['daily'].l,CD.hist['daily'].d,'#10b981','rgba(16,185,129,.28)');
+}
+
+/* ═══ TAB BUTTONS — UNIVERSAL HANDLER ═══ */
+document.querySelectorAll('.tab-group').forEach(group=>{
+  group.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      group.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const id=group.dataset.chart,type=group.dataset.type,period=btn.dataset.period;
+      if(!id||!type||!CD[type])return;
+      const d=CD[type][period];if(!d)return;
+      if(type==='mix'){const ch=CR['mixChart'];ch.data.labels=d.l;ch.data.datasets[0].data=d.d;ch.update('active');}
+      else if(type==='weekly'){
+        const ch=CR['weeklyChart'];
+        const main=period==='this'?'this':'last',compare=period==='this'?'last':'this';
+        ch.data.labels=CD.weekly[main].l;ch.data.datasets[0].data=CD.weekly[main].d;ch.data.datasets[1].data=CD.weekly[compare].d;ch.update('active');
+      } else {upChart(id,d.l,d.d);}
+      showToast('Chart updated','info','fa-chart-simple');
     });
+  });
 });
 
-// ── SIDEBAR TOGGLE ──
-document.getElementById('sidebarToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('collapsed');
+/* ═══ NAVIGATION ═══ */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+item.dataset.page).classList.add('active');
+    if(window.innerWidth<=640)document.getElementById('sidebar').classList.remove('open');
+  });
 });
 
-document.getElementById('mobileToggle').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('open');
+/* ═══ SIDEBAR ═══ */
+document.getElementById('sbToggle').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('collapsed'));
+document.getElementById('mobBtn').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+
+/* ═══ CLOCK ═══ */
+function tick(){const n=new Date();document.getElementById('hTime').textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});document.getElementById('hDate').textContent=n.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+tick();setInterval(tick,60000);
+
+/* ═══ TOAST ═══ */
+function showToast(msg,type='info',icon){
+  const wrap=document.getElementById('toastWrap');
+  const t=document.createElement('div');t.className='toast '+type;
+  const icons={success:'fa-circle-check',error:'fa-circle-xmark',info:'fa-circle-info'};
+  t.innerHTML=`<i class="fas ${icon||icons[type]||icons.info}"></i> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(()=>{t.style.animation='toastOut .28s ease forwards';setTimeout(()=>t.remove(),280);},2600);
+}
+
+/* ═══ MODAL ═══ */
+function showModal(title,body,foot,ico='fas fa-info-circle'){
+  closeModal();
+  const ov=document.createElement('div');ov.className='modal-overlay';ov.id='activeModal';
+  ov.innerHTML=`<div class="modal"><div class="modal-head"><h3><i class="${ico}"></i> ${title}</h3><button class="modal-close" onclick="closeModal()"><i class="fas fa-xmark"></i></button></div><div class="modal-body">${body}</div><div class="modal-foot">${foot}</div></div>`;
+  ov.addEventListener('click',e=>{if(e.target===ov)closeModal();});
+  document.body.appendChild(ov);
+}
+function closeModal(){const m=document.getElementById('activeModal');if(m)m.remove();}
+
+/* ═══ METRICS UPDATE ═══ */
+let refreshTimer;
+function updateMetrics(){
+  const v=Math.floor(Math.random()*400)+600,d=Math.floor(Math.random()*30)+45,s=Math.floor(Math.random()*25)+42;
+  document.getElementById('mVehicles').textContent=v;
+  document.getElementById('mDensity').textContent=d+'%';
+  document.getElementById('mSpeed').textContent=s+' km/h';
+  const pill=document.getElementById('trafficPill'),txt=document.getElementById('tLevelTxt');
+  pill.className='t-pill';
+  if(d<55){pill.classList.add('low');txt.textContent='Low';}
+  else if(d<72){pill.classList.add('moderate');txt.textContent='Moderate';}
+  else{pill.classList.add('high');txt.textContent='High';}
+  document.getElementById('mPred').textContent=['Stable','Increasing','Easing','Congested'][Math.floor(Math.random()*4)];
+  if(d>72&&!document.getElementById('activeModal'))triggerAlert(d,v);
+}
+function startRefresh(ms){clearInterval(refreshTimer);refreshTimer=setInterval(updateMetrics,ms);}
+startRefresh(30000);
+
+/* ═══ ALERT ═══ */
+function triggerAlert(density,count){
+  const p=['Heavy Congestion','Severe Slowdown','Standstill'][Math.floor(Math.random()*3)];
+  const i=['Extend Green +15s','Emergency Green Phase','Reduce Cycle Time'][Math.floor(Math.random()*3)];
+  showModal('Traffic Signal Alert',
+    `<div class="m-row"><label>Pattern</label><span>${p}</span></div><div class="m-row"><label>Signal Instruction</label><span>${i}</span></div><div class="m-row"><label>Vehicle Count</label><span>${count}</span></div><div class="m-row"><label>Density</label><span>${density}%</span></div><div class="m-row"><label>Timestamp</label><span>${new Date().toLocaleTimeString()}</span></div>`,
+    `<button class="btn btn-primary" onclick="closeModal();showToast('Alert acknowledged','success','fa-check')"><i class="fas fa-check"></i> Acknowledge</button>`,
+    'fas fa-traffic-light');
+}
+
+/* ═══════════════════════════
+   MAP BUTTONS — ALL WIRED
+═══════════════════════════ */
+/* Traffic Layers */
+document.getElementById('btnLayers').addEventListener('click',function(){
+  this.classList.toggle('active');
+  const on=this.classList.contains('active');
+  document.querySelectorAll('.map-blob').forEach(b=>b.style.opacity=on?'1':'0');
+  showToast(on?'Traffic layers ON':'Traffic layers OFF','info','fa-layer-group');
 });
 
-// ── TAB BUTTONS ──
-document.querySelectorAll('.tab-group').forEach(group => {
-    group.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            group.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        });
-    });
+/* Search Location */
+document.getElementById('btnSearch').addEventListener('click',()=>{
+  showModal('Search Location',
+    `<input class="search-input-modal" id="locQ" placeholder="Search city, street, landmark…" autofocus>
+     <div id="sRes">
+       <div class="s-result" data-loc="Main St & 5th Ave"><i class="fas fa-location-dot"></i><span>Main St &amp; 5th Ave — <b style="color:var(--red)">High</b></span></div>
+       <div class="s-result" data-loc="Downtown Tunnel"><i class="fas fa-location-dot"></i><span>Downtown Tunnel — <b style="color:var(--yellow)">Medium</b></span></div>
+       <div class="s-result" data-loc="River Bridge"><i class="fas fa-location-dot"></i><span>River Bridge — <b style="color:var(--green)">Low</b></span></div>
+       <div class="s-result" data-loc="North Bypass"><i class="fas fa-location-dot"></i><span>North Bypass — <b style="color:var(--red)">High</b></span></div>
+     </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" id="doSearch"><i class="fas fa-magnifying-glass"></i> Search</button>`,
+    'fas fa-magnifying-glass');
+  setTimeout(()=>{
+    const q=document.getElementById('locQ');
+    if(q){q.focus();q.addEventListener('input',e=>{const v=e.target.value.toLowerCase();document.querySelectorAll('#sRes .s-result').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(v)?'flex':'none');});}
+    document.querySelectorAll('#sRes .s-result').forEach(r=>{r.addEventListener('click',()=>{const loc=r.dataset.loc;closeModal();showToast('Zoomed to: '+loc,'success','fa-map-pin');});});
+    const ds=document.getElementById('doSearch');
+    if(ds)ds.addEventListener('click',()=>{const v=document.getElementById('locQ').value.trim();closeModal();showToast(v?'Searching: '+v:'Enter a location','info','fa-magnifying-glass');});
+  },40);
 });
 
-// ── MAP BUTTONS ──
-function toggleMapBtn(btn) {
-    btn.classList.toggle('active');
-}
-
-// ── DATE/TIME ──
-function updateClock() {
-    const now = new Date();
-    document.getElementById('hTime').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('hDate').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
-
-updateClock();
-setInterval(updateClock, 60000);
-
-// ── METRICS UPDATE ──
-function updateMetrics() {
-    const v = Math.floor(Math.random() * 400) + 600;
-    const d = Math.floor(Math.random() * 30) + 45;
-    const s = Math.floor(Math.random() * 25) + 42;
-
-    document.getElementById('m-vehicles').textContent = v;
-    document.getElementById('m-density').textContent = d + '%';
-    document.getElementById('m-speed').textContent = s + ' km/h';
-
-    const pill = document.getElementById('trafficPill');
-    const txt = document.getElementById('trafficLevelText');
-    pill.className = 'traffic-pill';
-    if (d < 55) { pill.classList.add('low'); txt.textContent = 'Low'; }
-    else if (d < 72) { pill.classList.add('moderate'); txt.textContent = 'Moderate'; }
-    else { pill.classList.add('high'); txt.textContent = 'High'; }
-
-    const preds = ['Stable', 'Increasing', 'Easing', 'Congested'];
-    document.getElementById('m-pred').textContent = preds[Math.floor(Math.random() * preds.length)];
-
-    checkAlert(d, v);
-}
-
-// ── ALERT POPUP ──
-function checkAlert(density, count) {
-    if (density > 72 && !document.querySelector('.popup-overlay')) {
-        const patterns = ['Heavy Congestion', 'Severe Slowdown', 'Standstill'];
-        const instrs = ['Extend Green Time by 15s', 'Emergency Green Phase', 'Reduce Cycle Time'];
-        showAlert({
-            pattern: patterns[Math.floor(Math.random() * patterns.length)],
-            instruction: instrs[Math.floor(Math.random() * instrs.length)],
-            count,
-            density: density.toFixed(1),
-            ts: new Date().toLocaleTimeString()
-        });
-    }
-}
-
-function showAlert(d) {
-    const overlay = document.createElement('div');
-    overlay.className = 'popup-overlay';
-    overlay.innerHTML = `
-        <div class="popup-box">
-            <div class="popup-head">
-                <h3><i class="fas fa-traffic-light"></i> Traffic Signal Alert</h3>
-                <button class="popup-close" onclick="document.querySelector('.popup-overlay').remove()">
-                    <i class="fas fa-xmark"></i>
-                </button>
-            </div>
-            <div class="popup-body">
-                <div class="popup-row"><label>Pattern</label><span>${d.pattern}</span></div>
-                <div class="popup-row"><label>Signal Instruction</label><span>${d.instruction}</span></div>
-                <div class="popup-row"><label>Vehicle Count</label><span>${d.count}</span></div>
-                <div class="popup-row"><label>Traffic Density</label><span>${d.density}%</span></div>
-                <div class="popup-row"><label>Timestamp</label><span>${d.ts}</span></div>
-            </div>
-            <div class="popup-foot">
-                <button class="btn-primary" onclick="document.querySelector('.popup-overlay').remove()">
-                    <i class="fas fa-check"></i> Acknowledge
-                </button>
-            </div>
-        </div>`;
-    document.body.appendChild(overlay);
-    setTimeout(() => { if (overlay.parentElement) overlay.remove(); }, 10000);
-}
-
-// ── INIT CHARTS ──
-function initCharts() {
-    // Vehicle Count Line
-    const vc = document.getElementById('vehicleChart').getContext('2d');
-    const vcGrad = makeGradient(vc, 'rgba(59,130,246,0.35)', 'rgba(59,130,246,0)');
-    new Chart(vc, {
-        type: 'line',
-        data: {
-            labels: ['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00'],
-            datasets: [{
-                data: [120,80,350,420,380,450,600,320],
-                borderColor: '#3b82f6',
-                backgroundColor: vcGrad,
-                borderWidth: 2.5,
-                tension: 0.4,
-                fill: true,
-                pointRadius: 4,
-                pointBackgroundColor: '#3b82f6',
-                pointBorderColor: '#060c1a',
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
-                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
-            }
-        }
+/* Plan Route */
+document.getElementById('btnRoute').addEventListener('click',()=>{
+  showModal('Plan Route',
+    `<div class="route-stop"><div class="r-ico start"><i class="fas fa-circle-dot"></i></div><input class="search-input-modal" id="rFrom" style="margin:0" placeholder="Start: your location"></div>
+     <div class="route-stop" style="margin-top:8px"><div class="r-ico end"><i class="fas fa-location-dot"></i></div><input class="search-input-modal" id="rTo" style="margin:0" placeholder="Destination…"></div>
+     <div style="margin-top:12px"><div class="s-label">Travel Mode</div>
+       <div class="filter-chips" id="modeChips">
+         <div class="chip active" data-mode="drive"><i class="fas fa-car"></i> Drive</div>
+         <div class="chip" data-mode="cycle"><i class="fas fa-bicycle"></i> Cycle</div>
+         <div class="chip" data-mode="walk"><i class="fas fa-person-walking"></i> Walk</div>
+       </div>
+     </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" id="doRoute"><i class="fas fa-route"></i> Get Directions</button>`,
+    'fas fa-route');
+  setTimeout(()=>{
+    document.querySelectorAll('#modeChips .chip').forEach(c=>{c.addEventListener('click',()=>{c.closest('#modeChips').querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));c.classList.add('active');});});
+    const dr=document.getElementById('doRoute');
+    if(dr)dr.addEventListener('click',()=>{
+      const from=document.getElementById('rFrom').value||'Current Location';
+      const to=document.getElementById('rTo').value;
+      if(!to){showToast('Enter a destination','error','fa-xmark');return;}
+      const mode=[...document.querySelectorAll('#modeChips .chip.active')].map(c=>c.dataset.mode)[0]||'drive';
+      const time=Math.floor(Math.random()*20)+8;
+      closeModal();showToast(`Route (${mode}): ${from} → ${to} · ~${time} min`,'success','fa-route');
     });
+  },40);
+});
 
-    // Density Bar
-    const dc = document.getElementById('densityChart').getContext('2d');
-    new Chart(dc, {
-        type: 'bar',
-        data: {
-            labels: ['Cars','Trucks','Buses','Motos'],
-            datasets: [{
-                data: [65,20,10,5],
-                backgroundColor: ['rgba(59,130,246,0.8)','rgba(16,185,129,0.8)','rgba(245,158,11,0.8)','rgba(139,92,246,0.8)'],
-                borderRadius: 6, borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8', callback: v => v + '%' } },
-                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
-            }
-        }
+/* Filter Vehicles */
+document.getElementById('btnFilter').addEventListener('click',()=>{
+  showModal('Filter Vehicles',
+    `<div class="s-label" style="margin-bottom:7px">Vehicle Types</div>
+     <div class="filter-chips" id="vChips">
+       <div class="chip active" data-v="all">All</div>
+       <div class="chip active" data-v="cars"><i class="fas fa-car"></i> Cars</div>
+       <div class="chip active" data-v="trucks"><i class="fas fa-truck"></i> Trucks</div>
+       <div class="chip active" data-v="buses"><i class="fas fa-bus"></i> Buses</div>
+       <div class="chip active" data-v="motos"><i class="fas fa-motorcycle"></i> Motos</div>
+     </div>
+     <div style="margin-top:14px"><div class="s-label">Min Speed Threshold</div>
+       <input type="range" min="0" max="120" value="0" id="spdSlider" style="width:100%;accent-color:var(--accent);margin-top:6px">
+       <div id="spdVal" style="font-family:var(--fm);font-size:.72rem;color:var(--muted);margin-top:4px">All speeds shown</div>
+     </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" id="doFilter"><i class="fas fa-check"></i> Apply Filter</button>`,
+    'fas fa-sliders');
+  setTimeout(()=>{
+    document.querySelectorAll('#vChips .chip').forEach(c=>{c.addEventListener('click',()=>{if(c.dataset.v==='all'){document.querySelectorAll('#vChips .chip').forEach(x=>x.classList.add('active'));}else{document.querySelector('#vChips [data-v="all"]').classList.remove('active');c.classList.toggle('active');}});});
+    const sl=document.getElementById('spdSlider'),sv=document.getElementById('spdVal');
+    if(sl)sl.addEventListener('input',()=>{sv.textContent=sl.value>0?'Min '+sl.value+' km/h':'All speeds shown';});
+    const df=document.getElementById('doFilter');
+    if(df)df.addEventListener('click',()=>{
+      const active=[...document.querySelectorAll('#vChips .chip.active')].map(c=>c.dataset.v).join(', ');
+      closeModal();showToast('Filter: '+active,'success','fa-sliders');
     });
+  },40);
+});
 
-    // Pattern Line
-    const pc = document.getElementById('patternChart').getContext('2d');
-    const pcGrad = makeGradient(pc, 'rgba(6,182,212,0.25)', 'rgba(6,182,212,0)');
-    new Chart(pc, {
-        type: 'line',
-        data: {
-            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            datasets: [{
-                data: [2,3,2,3,3,1,1],
-                borderColor: '#06b6d4',
-                backgroundColor: pcGrad,
-                borderWidth: 2.5, tension: 0.4, fill: true,
-                pointRadius: 6,
-                pointBackgroundColor: ctx => { const v=ctx.parsed?.y; return v===1?'#10b981':v===2?'#f59e0b':'#ef4444'; },
-                pointBorderColor: '#060c1a', pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: c => {const v=c.parsed.y;return v===1?'Low':v===2?'Medium':'High';} } }
-            },
-            scales: {
-                y: { min:0,max:4, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                     ticks: { color: '#6b7fa8', stepSize:1, callback: v => v===1?'Low':v===2?'Med':v===3?'High':'' } },
-                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
-            }
-        }
-    });
+/* Refresh Map */
+document.getElementById('btnRefreshMap').addEventListener('click',function(){
+  const ico=this.querySelector('i');
+  ico.style.animation='spin .65s linear';
+  setTimeout(()=>ico.style.animation='',680);
+  updateMetrics();
+  showToast('Map refreshed','success','fa-arrows-rotate');
+});
 
-    // Peak Hours
-    const phc = document.getElementById('peakChart').getContext('2d');
-    new Chart(phc, {
-        type: 'bar',
-        data: {
-            labels: ['6AM','9AM','12PM','3PM','6PM','9PM'],
-            datasets: [{
-                data: [350,600,450,500,750,300],
-                backgroundColor: ctx => {
-                    const v = ctx.parsed.y;
-                    if (v > 600) return 'rgba(239,68,68,0.8)';
-                    if (v > 450) return 'rgba(245,158,11,0.8)';
-                    return 'rgba(59,130,246,0.8)';
-                },
-                borderRadius: 6, borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
-                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
-            }
-        }
-    });
+/* Map pin tooltips */
+document.querySelectorAll('.map-pin').forEach(pin=>{
+  const tt=document.getElementById('mapTooltip');
+  pin.addEventListener('mouseenter',e=>{
+    tt.innerHTML=`<b>${pin.dataset.loc}</b><br>Status: ${pin.dataset.status} &nbsp;·&nbsp; Density: ${pin.dataset.density}`;
+    tt.classList.add('show');
+    const pr=pin.getBoundingClientRect(),mr=document.getElementById('mapArea').getBoundingClientRect();
+    tt.style.top=(pr.top-mr.top-52)+'px';tt.style.left=(pr.left-mr.left+16)+'px';
+  });
+  pin.addEventListener('mouseleave',()=>tt.classList.remove('show'));
+  pin.addEventListener('click',()=>showToast('Zoomed to: '+pin.dataset.loc,'info','fa-location-dot'));
+});
 
-    // Vehicle Mix Doughnut
-    const mc = document.getElementById('mixChart').getContext('2d');
-    new Chart(mc, {
-        type: 'doughnut',
-        data: {
-            labels: ['Cars','Trucks','Motorcycles','Buses'],
-            datasets: [{
-                data: [65,15,12,8],
-                backgroundColor: ['#3b82f6','#06b6d4','#8b5cf6','#10b981'],
-                borderColor: '#0d1630', borderWidth: 3
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#6b7fa8', padding: 14, usePointStyle: true, pointStyleWidth: 8 } }
-            }
-        }
-    });
+/* ═══════════════════════════
+   HISTORICAL BUTTONS
+═══════════════════════════ */
+document.getElementById('histRange').addEventListener('change',function(){
+  const v=this.value;if(v==='custom')return;
+  const to=new Date(),from=new Date();from.setDate(to.getDate()-parseInt(v));
+  document.getElementById('histFrom').value=from.toISOString().split('T')[0];
+  document.getElementById('histTo').value=to.toISOString().split('T')[0];
+});
 
-    // Weekly
-    const wc = document.getElementById('weeklyChart').getContext('2d');
-    const wcGrad = makeGradient(wc, 'rgba(139,92,246,0.25)', 'rgba(139,92,246,0)');
-    new Chart(wc, {
-        type: 'line',
-        data: {
-            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            datasets: [{
-                label: 'This Week',
-                data: [820,940,880,960,1100,650,580],
-                borderColor: '#8b5cf6',
-                backgroundColor: wcGrad,
-                borderWidth: 2.5, tension: 0.4, fill: true,
-                pointRadius: 4, pointBackgroundColor: '#8b5cf6', pointBorderColor: '#060c1a', pointBorderWidth: 2
-            },{
-                label: 'Last Week',
-                data: [760,900,820,900,1050,600,540],
-                borderColor: 'rgba(107,127,168,0.5)',
-                borderWidth: 1.5, tension: 0.4, borderDash: [5,5],
-                pointRadius: 0
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#6b7fa8', padding: 14, usePointStyle: true } } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
-                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
-            }
-        }
-    });
+document.getElementById('btnApplyFilter').addEventListener('click',()=>{
+  const from=document.getElementById('histFrom').value,to=document.getElementById('histTo').value;
+  if(!from||!to){showToast('Select a date range','error');return;}
+  if(new Date(from)>new Date(to)){showToast('Start date must be before end date','error');return;}
+  const days=Math.ceil((new Date(to)-new Date(from))/(864e5))+1,labels=[],data=[];
+  for(let i=0;i<Math.min(days,12);i++){const d=new Date(from);d.setDate(d.getDate()+i);labels.push(d.toLocaleDateString('en-US',{month:'short',day:'numeric'}));data.push(Math.floor(Math.random()*600)+700);}
+  upChart('histChart',labels,data);
+  showToast(`Data loaded: ${from} → ${to}`,'success','fa-filter');
+});
 
-    // Historical
-    const hc = document.getElementById('histChart').getContext('2d');
-    const hcGrad = makeGradient(hc, 'rgba(16,185,129,0.25)', 'rgba(16,185,129,0)');
-    new Chart(hc, {
-        type: 'line',
-        data: {
-            labels: ['Oct 1','Oct 2','Oct 3','Oct 4','Oct 5','Oct 6','Oct 7'],
-            datasets: [{
-                label: 'Vehicle Count',
-                data: [980,1050,920,1100,1200,750,680],
-                borderColor: '#10b981',
-                backgroundColor: hcGrad,
-                borderWidth: 2.5, tension: 0.4, fill: true,
-                pointRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: '#060c1a', pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#6b7fa8', usePointStyle: true } } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#6b7fa8' } },
-                x: { grid: { display: false }, ticks: { color: '#6b7fa8' } }
-            }
-        }
-    });
-}
+document.getElementById('btnResetFilter').addEventListener('click',()=>{
+  document.getElementById('histRange').value='7';
+  document.getElementById('histFrom').value='2024-10-01';
+  document.getElementById('histTo').value='2024-10-07';
+  upChart('histChart',CD.hist['daily'].l,CD.hist['daily'].d);
+  showToast('Filter reset','info','fa-rotate-left');
+});
 
-// ── INIT ──
-document.addEventListener('DOMContentLoaded', () => {
-    initCharts();
-    updateMetrics();
-    setInterval(updateMetrics, 30000);
-    setTimeout(updateMetrics, 2000);
+document.getElementById('btnCSV').addEventListener('click',()=>{
+  const rows=[['Date','Vehicles','Density','Avg Speed']];
+  CD.hist['daily'].l.forEach((l,i)=>rows.push([l,CD.hist['daily'].d[i],Math.floor(Math.random()*40+40)+'%',Math.floor(Math.random()*30+40)+' km/h']));
+  const blob=new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='intellitraffic.csv';a.click();
+  showToast('CSV downloaded','success','fa-file-csv');
+});
+
+document.getElementById('btnPDF').addEventListener('click',()=>{
+  showToast('Generating PDF…','info','fa-file-pdf');
+  setTimeout(()=>showToast('PDF ready!','success','fa-file-pdf'),1800);
+});
+
+document.getElementById('btnReport').addEventListener('click',()=>{
+  showModal('Generate Report',
+    `<div class="m-row"><label>Report Type</label><span>Traffic Summary</span></div>
+     <div class="m-row"><label>Period</label><span>Oct 1 – Oct 7, 2024</span></div>
+     <div class="m-row"><label>Sections</label><span>Charts, Hotspots, Predictions, Incidents</span></div>
+     <div class="m-row"><label>Format</label><span>PDF + CSV Bundle</span></div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" id="doReport"><i class="fas fa-chart-bar"></i> Generate Now</button>`,
+    'fas fa-chart-bar');
+  setTimeout(()=>{
+    const dr=document.getElementById('doReport');
+    if(dr)dr.addEventListener('click',()=>{closeModal();showToast('Generating report…','info','fa-chart-bar');setTimeout(()=>showToast('Report ready!','success','fa-check'),2400);});
+  },40);
+});
+
+/* ═══════════════════════════
+   SETTINGS BUTTONS
+═══════════════════════════ */
+document.querySelectorAll('.toggle').forEach(t=>{
+  t.addEventListener('click',()=>{
+    t.classList.toggle('on');
+    const pref=t.dataset.pref,on=t.classList.contains('on');
+    showToast((pref?pref[0].toUpperCase()+pref.slice(1):'Setting')+' '+(on?'enabled':'disabled'),on?'success':'info');
+  });
+});
+
+document.getElementById('btnSaveGeneral').addEventListener('click',function(){
+  const rate=parseInt(document.getElementById('refreshRate').value);
+  startRefresh(rate);
+  const orig=this.innerHTML;this.innerHTML='<i class="fas fa-check"></i> Saved!';
+  showToast('General settings saved','success','fa-floppy-disk');
+  setTimeout(()=>this.innerHTML=orig,2000);
+});
+
+document.getElementById('btnSaveAlerts').addEventListener('click',function(){
+  const orig=this.innerHTML;this.innerHTML='<i class="fas fa-check"></i> Saved!';
+  showToast('Alert preferences saved','success','fa-bell');
+  setTimeout(()=>this.innerHTML=orig,2000);
+});
+
+document.getElementById('btnSaveCam').addEventListener('click',function(){
+  const orig=this.innerHTML;this.innerHTML='<i class="fas fa-check"></i> Saved!';
+  showToast('Camera settings saved','success','fa-camera');
+  setTimeout(()=>this.innerHTML=orig,2000);
+});
+
+document.getElementById('btnClearCache').addEventListener('click',()=>{
+  showModal('Clear Cache',
+    `<div style="text-align:center;padding:12px 0">
+       <i class="fas fa-triangle-exclamation" style="font-size:2.4rem;color:var(--yellow);display:block;margin-bottom:12px"></i>
+       <p style="font-size:.88rem;line-height:1.65">Clears all cached traffic data &amp; temp storage.<br>Your saved settings will <b>not</b> be affected.</p>
+     </div>`,
+    `<button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-danger" id="doClear"><i class="fas fa-trash-can"></i> Clear Now</button>`,
+    'fas fa-trash-can');
+  setTimeout(()=>{
+    const dc=document.getElementById('doClear');
+    if(dc)dc.addEventListener('click',()=>{closeModal();showToast('Cache cleared','success','fa-trash-can');});
+  },40);
+});
+
+/* ═══ INIT ═══ */
+document.addEventListener('DOMContentLoaded',()=>{
+  initCharts();
+  updateMetrics();
+  setTimeout(updateMetrics,3000);
 });
 </script>
 </body>
